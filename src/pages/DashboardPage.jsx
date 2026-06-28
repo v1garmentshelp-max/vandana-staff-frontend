@@ -286,10 +286,36 @@ export default function DashboardPage({
     }
   }
 
-  function handleMarkAll() {
-    const ok = markAllPresent();
-    if (ok) showToast(`All staff marked Present`);
-    else    showToast('Current month only','warn');
+  async function handleMarkAll() {
+    try {
+      const ok = await markAllPresent();
+      if (ok) showToast(`All staff marked Present`);
+      else    showToast('Current month only','warn');
+    } catch(err) {
+      showToast('Failed to mark all present: ' + err.message, 'error');
+    }
+  }
+
+  async function handleMarkOne(staffId, date, status) {
+    try {
+      await markOne(staffId, date, status);
+    } catch(err) {
+      showToast('Failed to update attendance: ' + err.message, 'error');
+    }
+  }
+
+  async function handleToggleSavings(sId, isConf) {
+    try {
+      if (isConf) {
+        await unconfirmSavings(sId, curMonth);
+        showToast('Savings unconfirmed');
+      } else {
+        await confirmSavings(sId, curMonth);
+        showToast('Savings confirmed');
+      }
+    } catch(err) {
+      showToast('Failed to update savings: ' + err.message, 'error');
+    }
   }
 
   function sendWA(s, sal, saved, loan, isConf) {
@@ -421,7 +447,7 @@ export default function DashboardPage({
                       {isCurMonth
                         ? <div style={{ display:'flex',gap:3 }}>
                             {ATT_STATUSES.map(st => (
-                              <button key={st} onClick={()=>markOne(s.id,todaySt,st)} className="btn btn-xs"
+                              <button key={st} onClick={()=>handleMarkOne(s.id,todaySt,st)} className="btn btn-xs"
                                 style={{ background:todayStat===st?ATT_BG[st]:'var(--s2)',
                                   borderColor:todayStat===st?ATT_COL[st]:'var(--border)',
                                   color:todayStat===st?ATT_COL[st]:'var(--t3)',
@@ -472,7 +498,7 @@ export default function DashboardPage({
                     {/* Savings confirm */}
                     <td>
                       <button
-                        onClick={()=>isConf ? unconfirmSavings(s.id,curMonth) : confirmSavings(s.id,curMonth)}
+                        onClick={()=>handleToggleSavings(s.id,isConf)}
                         className="btn btn-xs"
                         style={{ background:isConf?'#d4edda':'var(--s2)',
                           borderColor:isConf?'#1a6b35':'var(--border)',
@@ -525,28 +551,67 @@ export default function DashboardPage({
 
       {/* Modals */}
       {addModal && (
-        <StaffModal onSave={d=>{ addStaff(d); showToast('Staff added'); setAddModal(false); }} onClose={()=>setAddModal(false)}/>
+        <StaffModal onSave={async d=>{
+          try {
+            await addStaff(d);
+            showToast('Staff added');
+            setAddModal(false);
+          } catch(err) {
+            showToast('Failed to add staff: ' + err.message, 'error');
+          }
+        }} onClose={()=>setAddModal(false)}/>
       )}
       {editStaff && (
-        <StaffModal existing={editStaff} onSave={d=>{ updateStaff(editStaff.id,d); showToast('Updated'); setEditStaff(null); }} onClose={()=>setEditStaff(null)}/>
+        <StaffModal existing={editStaff} onSave={async d=>{
+          try {
+            await updateStaff(editStaff.id,d);
+            showToast('Updated');
+            setEditStaff(null);
+          } catch(err) {
+            showToast('Failed to update staff: ' + err.message, 'error');
+          }
+        }} onClose={()=>setEditStaff(null)}/>
       )}
       {attStaff && (
         <AttModal staffName={attStaff.name} staffId={attStaff.id}
           sAtt={monthAtt[attStaff.id]||{}} curMonth={curMonth}
           weeklyOff={weeklyOff} holidays={holidays}
-          onMark={markOne} onClose={()=>setAttStaff(null)}/>
+          onMark={handleMarkOne} onClose={()=>setAttStaff(null)}/>
       )}
       {loanStaff && (
         <LoanModal staff={loanStaff} loanData={getLoan(loanStaff.id)}
-          onSave={d=>{ setLoan(loanStaff.id,d); updateStaff(loanStaff.id,{ extraAdvance:d.total, monthlyRecovery:d.monthly, totalOutstanding:d.remaining }); showToast('Loan updated'); }}
-          onPayment={(amt,note)=>{ addLoanPayment(loanStaff.id,amt,note); showToast(`Payment of ${inr(amt)} recorded`); }}
+          onSave={async d=>{
+            try {
+              await setLoan(loanStaff.id,d);
+              await updateStaff(loanStaff.id,{ extraAdvance:d.total, monthlyRecovery:d.monthly, totalOutstanding:d.remaining });
+              showToast('Loan updated');
+            } catch(err) {
+              showToast('Failed to update loan: ' + err.message, 'error');
+            }
+          }}
+          onPayment={async (amt,note)=>{
+            try {
+              await addLoanPayment(loanStaff.id,amt,note);
+              showToast(`Payment of ${inr(amt)} recorded`);
+            } catch(err) {
+              showToast('Failed to record payment: ' + err.message, 'error');
+            }
+          }}
           onClose={()=>setLoanStaff(null)}/>
       )}
       {confirmDel && (
         <ConfirmModal title="Delete Staff Member"
           message={`Permanently delete ${confirmDel.name}? All their data will be removed.`}
           danger
-          onConfirm={()=>{ deleteStaff(confirmDel.id); setConfirmDel(null); showToast(`${confirmDel.name} removed`); }}
+          onConfirm={async ()=>{
+            try {
+              await deleteStaff(confirmDel.id);
+              setConfirmDel(null);
+              showToast(`${confirmDel.name} removed`);
+            } catch(err) {
+              showToast('Failed to delete staff: ' + err.message, 'error');
+            }
+          }}
           onCancel={()=>setConfirmDel(null)}/>
       )}
       {importChanges && (

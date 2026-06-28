@@ -28,7 +28,7 @@ function AttCell({ value, disabled, isToday, onChange }) {
 }
 
 export default function SheetPage({
-  staff,setStaffDirect,allAtt,setAllAttDirect,allMonths,weeklyOff,holidays,
+  staff,updateStaff,allAtt,markOne,allMonths,weeklyOff,holidays,
   curMonth,setCurMonth,pushHistoryDirect,snapshot,undo,redo,canUndo,canRedo,showToast,
 }) {
   const [tab,setTab]=useState('staff');
@@ -48,19 +48,24 @@ export default function SheetPage({
     {k:'totalSavings',l:'Tot Savings',w:100,numeric:true},
   ];
 
-  function editStaffCell(idx,key,val){
-    pushHistoryDirect(snapshot());
-    setStaffDirect(prev=>prev.map((s,i)=>i===idx?{...s,[key]:val}:s));
+  async function editStaffCell(idx,key,val){
+    const member = staff[idx];
+    try {
+      await updateStaff(member.id, { [key]: val });
+      showToast('Staff updated');
+    } catch(err) {
+      showToast('Failed to update: ' + err.message, 'error');
+    }
   }
-  function editAttCell(sId,d,rawVal){
+  async function editAttCell(sId,d,rawVal){
     const v=rawVal.toUpperCase().trim();
     if(!ATT_STATUSES.includes(v)&&v!=='') return;
-    pushHistoryDirect(snapshot());
-    setAllAttDirect(prev=>{
-      const cur=prev[curMonth]||{}; const sAtt=cur[sId]||{};
-      if(v===''){const{[d]:_,...rest}=sAtt;return{...prev,[curMonth]:{...cur,[sId]:rest}};}
-      return{...prev,[curMonth]:{...cur,[sId]:{...sAtt,[d]:v}}};
-    });
+    try {
+      await markOne(sId, d, v);
+      showToast('Attendance updated');
+    } catch(err) {
+      showToast('Failed to update: ' + err.message, 'error');
+    }
   }
 
   function downloadExcel(){

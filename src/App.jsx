@@ -43,7 +43,7 @@ export default function App() {
 
   const showToast = useCallback((message, type='success') => setToast({ message, type }), []);
 
-  const A = useAppState();
+  const A = useAppState(showToast);
 
   // Global keyboard shortcuts
   useEffect(() => {
@@ -150,8 +150,8 @@ export default function App() {
         )}
         {page==='sheet' && (
           <SheetPage
-            staff={A.staff} setStaffDirect={A.bulkSetStaff}
-            allAtt={A.allAtt} setAllAttDirect={A.bulkSetAllAtt}
+            staff={A.staff} updateStaff={A.updateStaff}
+            allAtt={A.allAtt} markOne={A.markOne}
             weeklyOff={A.weeklyOff} holidays={A.holidays}
             curMonth={A.curMonth} setCurMonth={A.setCurMonth} allMonths={A.allMonths}
             pushHistoryDirect={A.pushHistoryDirect} snapshot={A.snapshot}

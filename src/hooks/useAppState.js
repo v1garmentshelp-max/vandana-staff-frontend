@@ -4,7 +4,7 @@ import { monthKey, todayStr, clone } from '../utils/helpers.js';
 
 const HIST = 50;
 
-export function useAppState() {
+export function useAppState(showToast) {
   const [staff,      setStaff]      = useState([]);
   const [allAtt,     setAllAtt]     = useState({});
   const [allSavings, setAllSavings] = useState({});
@@ -49,14 +49,20 @@ export function useAppState() {
     try {
       const data = await api.getAttendance(month);
       setAllAtt(prev => ({ ...prev, [month]: data }));
-    } catch(e) { console.error('loadAttendance:', e.message); }
+    } catch(e) {
+      console.error('loadAttendance:', e.message);
+      if (showToast) showToast(`Failed to load attendance: ${e.message}`, 'error');
+    }
   }
 
   async function loadCommission(month) {
     try {
       const data = await api.getCommission(month);
       setCommission(prev => ({ ...prev, [month]: data }));
-    } catch(e) { console.error('loadCommission:', e.message); }
+    } catch(e) {
+      console.error('loadCommission:', e.message);
+      if (showToast) showToast(`Failed to load commission: ${e.message}`, 'error');
+    }
   }
 
   const monthAtt = allAtt[curMonth] || {};
@@ -107,7 +113,12 @@ export function useAppState() {
     try {
       await api.markAllPresent(staff.map(s => s.id), d);
       if (!attMonths.includes(curMonth)) setAttMonths(p => [curMonth, ...p]);
-    } catch(e) { console.error('markAllPresent:', e.message); }
+    } catch(e) {
+      setAllAtt(s.allAtt);
+      console.error('markAllPresent:', e.message);
+      if (showToast) showToast(`Failed to mark all present: ${e.message}`, 'error');
+      throw e;
+    }
     return true;
   }
 
@@ -121,7 +132,12 @@ export function useAppState() {
     try {
       await api.markOne(staffId, date, status);
       if (!attMonths.includes(curMonth)) setAttMonths(p => [curMonth, ...p]);
-    } catch(e) { console.error('markOne:', e.message); }
+    } catch(e) {
+      setAllAtt(s.allAtt);
+      console.error('markOne:', e.message);
+      if (showToast) showToast(`Failed to update attendance: ${e.message}`, 'error');
+      throw e;
+    }
   }
 
   // ── Staff ───────────────────────────────────────────────────────────────────
@@ -131,7 +147,11 @@ export function useAppState() {
       const created = await api.addStaff(member);
       setStaff(prev => [...prev, created]);
       await addAuditEntry('ADD_STAFF', created.id, null, null, created.name);
-    } catch(e) { console.error('addStaff:', e.message); throw e; }
+    } catch(e) {
+      console.error('addStaff:', e.message);
+      if (showToast) showToast(`Failed to add staff: ${e.message}`, 'error');
+      throw e;
+    }
   }
 
   async function updateStaff(id, changes) {
@@ -144,15 +164,25 @@ export function useAppState() {
     } catch(e) {
       setStaff(prev => prev.map(x => x.id === id ? existing : x));
       console.error('updateStaff:', e.message);
+      if (showToast) showToast(`Failed to update staff: ${e.message}`, 'error');
+      throw e;
     }
   }
 
   async function deleteStaff(id) {
     const s = snap(); pushH(s);
     const name = staff.find(x => x.id === id)?.name;
+    const existing = staff;
     setStaff(prev => prev.filter(x => x.id !== id));
-    try { await api.deleteStaff(id); await addAuditEntry('DELETE_STAFF', id, null, name, null); }
-    catch(e) { console.error('deleteStaff:', e.message); }
+    try {
+      await api.deleteStaff(id);
+      await addAuditEntry('DELETE_STAFF', id, null, name, null);
+    } catch(e) {
+      setStaff(existing);
+      console.error('deleteStaff:', e.message);
+      if (showToast) showToast(`Failed to delete staff: ${e.message}`, 'error');
+      throw e;
+    }
   }
 
   // ── Savings ─────────────────────────────────────────────────────────────────
@@ -168,8 +198,16 @@ export function useAppState() {
       return { ...prev, [id]: { confirmed: [...r.confirmed, month], total: r.total + amount } };
     });
     setStaff(prev => prev.map(x => x.id === id ? { ...x, totalSavings: (x.totalSavings||0) + amount } : x));
-    try { await api.confirmSavings(id, month, amount); await addAuditEntry('CONFIRM_SAVINGS', id, 'savings', null, amount); }
-    catch(e) { console.error('confirmSavings:', e.message); }
+    try {
+      await api.confirmSavings(id, month, amount);
+      await addAuditEntry('CONFIRM_SAVINGS', id, 'savings', null, amount);
+    } catch(e) {
+      setAllSavings(s.allSavings);
+      setStaff(s.staff);
+      console.error('confirmSavings:', e.message);
+      if (showToast) showToast(`Failed to confirm savings: ${e.message}`, 'error');
+      throw e;
+    }
   }
 
   async function unconfirmSavings(id, month) {
@@ -182,7 +220,15 @@ export function useAppState() {
       return { ...prev, [id]: { confirmed: r.confirmed.filter(m => m !== month), total: Math.max(0, r.total - amount) } };
     });
     setStaff(prev => prev.map(x => x.id === id ? { ...x, totalSavings: Math.max(0, (x.totalSavings||0) - amount) } : x));
-    try { await api.unconfirmSavings(id, month); } catch(e) { console.error('unconfirmSavings:', e.message); }
+    try {
+      await api.unconfirmSavings(id, month);
+    } catch(e) {
+      setAllSavings(s.allSavings);
+      setStaff(s.staff);
+      console.error('unconfirmSavings:', e.message);
+      if (showToast) showToast(`Failed to unconfirm savings: ${e.message}`, 'error');
+      throw e;
+    }
   }
 
   // ── Loans ───────────────────────────────────────────────────────────────────
@@ -192,8 +238,16 @@ export function useAppState() {
     const s = snap(); pushH(s);
     setLoans(prev => ({ ...prev, [id]: { ...(prev[id]||{}), ...data } }));
     setStaff(prev => prev.map(x => x.id === id ? { ...x, extraAdvance: data.total, monthlyRecovery: data.monthly, totalOutstanding: data.remaining } : x));
-    try { await api.saveLoan(id, data); await addAuditEntry('LOAN_UPDATE', id, 'loan', null, JSON.stringify(data)); }
-    catch(e) { console.error('setLoan:', e.message); }
+    try {
+      await api.saveLoan(id, data);
+      await addAuditEntry('LOAN_UPDATE', id, 'loan', null, JSON.stringify(data));
+    } catch(e) {
+      setLoans(s.loans);
+      setStaff(s.staff);
+      console.error('setLoan:', e.message);
+      if (showToast) showToast(`Failed to update loan: ${e.message}`, 'error');
+      throw e;
+    }
   }
 
   async function addLoanPayment(id, amount, note='') {
@@ -203,33 +257,69 @@ export function useAppState() {
       const cur = prev[id] || { total:0, monthly:0, remaining:0, payments:[] };
       return { ...prev, [id]: { ...cur, remaining: Math.max(0, cur.remaining - amount), payments: [...cur.payments, { amount, note, date: now }] } };
     });
-    try { await api.addLoanPayment(id, amount, note); await addAuditEntry('LOAN_PAYMENT', id, 'remaining', null, amount); }
-    catch(e) { console.error('addLoanPayment:', e.message); }
+    try {
+      await api.addLoanPayment(id, amount, note);
+      await addAuditEntry('LOAN_PAYMENT', id, 'remaining', null, amount);
+    } catch(e) {
+      setLoans(s.loans);
+      console.error('addLoanPayment:', e.message);
+      if (showToast) showToast(`Failed to record loan payment: ${e.message}`, 'error');
+      throw e;
+    }
   }
 
   // ── Holidays ─────────────────────────────────────────────────────────────────
   async function addHoliday(date, name='Custom Holiday') {
     const s = snap(); pushH(s);
     setHolidays(prev => [...new Set([...prev, date])].sort());
-    try { await api.addHoliday(date, name); } catch(e) { console.error('addHoliday:', e.message); }
+    try {
+      await api.addHoliday(date, name);
+    } catch(e) {
+      setHolidays(s.holidays);
+      console.error('addHoliday:', e.message);
+      if (showToast) showToast(`Failed to add holiday: ${e.message}`, 'error');
+      throw e;
+    }
   }
 
   async function removeHoliday(date) {
     const s = snap(); pushH(s);
     setHolidays(prev => prev.filter(d => d !== date));
-    try { await api.removeHoliday(date); } catch(e) { console.error('removeHoliday:', e.message); }
+    try {
+      await api.removeHoliday(date);
+    } catch(e) {
+      setHolidays(s.holidays);
+      console.error('removeHoliday:', e.message);
+      if (showToast) showToast(`Failed to remove holiday: ${e.message}`, 'error');
+      throw e;
+    }
   }
 
   async function setWeeklyOff(val) {
     const s = snap(); pushH(s);
     setWeeklyOff_(val);
-    try { await api.setSetting('weekly_off', String(val)); } catch(e) { console.error('setWeeklyOff:', e.message); }
+    try {
+      await api.setSetting('weekly_off', String(val));
+    } catch(e) {
+      setWeeklyOff_(s.weeklyOff);
+      console.error('setWeeklyOff:', e.message);
+      if (showToast) showToast(`Failed to update weekly off setting: ${e.message}`, 'error');
+      throw e;
+    }
   }
 
   async function setWaConfig(cfg) {
+    const oldConfig = waConfig;
     setWaConfig_(cfg);
-    try { await api.setSetting('wa_token', cfg.token||''); await api.setSetting('wa_phone_id', cfg.phoneId||''); }
-    catch(e) { console.error('setWaConfig:', e.message); }
+    try {
+      await api.setSetting('wa_token', cfg.token||'');
+      await api.setSetting('wa_phone_id', cfg.phoneId||'');
+    } catch(e) {
+      setWaConfig_(oldConfig);
+      console.error('setWaConfig:', e.message);
+      if (showToast) showToast(`Failed to save WhatsApp config: ${e.message}`, 'error');
+      throw e;
+    }
   }
 
   // ── Commission ───────────────────────────────────────────────────────────────
@@ -244,7 +334,11 @@ export function useAppState() {
         if (!data.find(d => d.staffId === old.staffId)) await api.deleteCommission(month, old.staffId);
       }
       for (const entry of data) await api.saveCommission({ ...entry, month });
-    } catch(e) { console.error('setCommission:', e.message); }
+    } catch(e) {
+      setCommission(s.commission);
+      console.error('setCommission:', e.message);
+      throw e;
+    }
   }
 
   async function silentReload() {
