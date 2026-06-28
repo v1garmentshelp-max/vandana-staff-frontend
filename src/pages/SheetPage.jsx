@@ -6,14 +6,15 @@ import { ATT_STATUSES, BRANCHES, DESIGNATIONS } from '../utils/constants.js';
 
 function EditCell({ value, onChange, numeric, options, disabled }) {
   const [ed,setEd]=useState(false); const [val,setVal]=useState(''); const ref=useRef();
+  const titleVal = value != null ? String(value) : '';
   function start(){ if(disabled) return; setVal(value??''); setEd(true); setTimeout(()=>ref.current?.focus(),0); }
   function commit(){ setEd(false); const v=numeric?Number(val):val; if(v!==value) onChange(v); }
-  if(disabled) return <div style={{padding:'8px 12px',color:'var(--t3)',fontSize:13}}>{value??'—'}</div>;
+  if(disabled) return <div style={{padding:'8px 12px',color:'var(--t3)',fontSize:13,overflow:'hidden',textOverflow:'ellipsis',whiteSpace:'nowrap'}} title={titleVal}>{value??'—'}</div>;
   if(ed){
     if(options) return <select ref={ref} value={val} onChange={e=>setVal(e.target.value)} onBlur={commit} style={{border:'none',background:'#fffde7',padding:'8px 12px',fontSize:13,width:'100%',outline:'none'}}>{options.map(o=><option key={o} value={o}>{o}</option>)}</select>;
     return <input ref={ref} type={numeric?'number':'text'} value={val} onChange={e=>setVal(e.target.value)} onBlur={commit} onKeyDown={e=>{if(e.key==='Enter')commit();if(e.key==='Escape')setEd(false);}} style={{border:'none',background:'#fffde7',padding:'8px 12px',fontSize:13,width:'100%',outline:'none'}}/>;
   }
-  return <div onClick={start} style={{padding:'8px 12px',cursor:'cell',fontSize:13,minHeight:36}}>{value??''}</div>;
+  return <div onClick={start} style={{padding:'8px 12px',cursor:'cell',fontSize:13,minHeight:36,overflow:'hidden',textOverflow:'ellipsis',whiteSpace:'nowrap'}} title={titleVal}>{value??''}</div>;
 }
 
 function AttCell({ value, disabled, isToday, onChange }) {
@@ -37,9 +38,9 @@ export default function SheetPage({
   const DAY=['Su','Mo','Tu','We','Th','Fr','Sa'];
 
   const STAFF_COLS=[
-    {k:'id',l:'ID',w:70,disabled:true},{k:'name',l:'Name',w:160},{k:'designation',l:'Designation',w:130,options:DESIGNATIONS},
-    {k:'branch',l:'Branch',w:150,options:BRANCHES.filter(b=>b!=='ALL BRANCHES')},
-    {k:'aadhar',l:'Aadhar',w:155},{k:'phone',l:'Phone',w:115},{k:'altPhone',l:'Alt Phone',w:115},{k:'dob',l:'DOB',w:110},
+    {k:'id',l:'ID',w:70,disabled:true},{k:'name',l:'Name',w:220},{k:'designation',l:'Designation',w:150,options:DESIGNATIONS},
+    {k:'branch',l:'Branch',w:200,options:BRANCHES.filter(b=>b!=='ALL BRANCHES')},
+    {k:'aadhar',l:'Aadhar',w:170},{k:'phone',l:'Phone',w:115},{k:'altPhone',l:'Alt Phone',w:115},{k:'dob',l:'DOB',w:110},
     {k:'salary',l:'Salary',w:110,numeric:true},{k:'fixedCutting',l:'Fixed Cut',w:95,numeric:true},
     {k:'_commEarned',l:'Commission',w:110,disabled:true},
     {k:'advance',l:'Advance',w:90,numeric:true},{k:'extraAdvance',l:'Extra Adv',w:90,numeric:true},
