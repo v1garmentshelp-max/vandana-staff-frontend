@@ -247,6 +247,30 @@ export function useAppState() {
     } catch(e) { console.error('setCommission:', e.message); }
   }
 
+  async function silentReload() {
+    try {
+      const [staffData, savingsData, loansData, auditData] = await Promise.all([
+        api.getStaff(), api.getSavings(), api.getLoans(), api.getAudit()
+      ]);
+      setStaff(staffData);
+      setAllSavings(savingsData);
+      setLoans(loansData);
+      setAuditLog(auditData);
+    } catch(e) { console.error('silentReload failed:', e.message); }
+  }
+
+  async function importStaff(changes) {
+    const s = snap(); pushH(s);
+    try {
+      const res = await api.bulkImport(changes);
+      await silentReload();
+      return res;
+    } catch(e) {
+      console.error('importStaff:', e.message);
+      throw e;
+    }
+  }
+
   // ── Bulk setters ─────────────────────────────────────────────────────────────
   function bulkSetStaff(fn) { const s = snap(); pushH(s); setStaff(fn); }
   function bulkSetAllAtt(fn) { const s = snap(); pushH(s); setAllAtt(fn); }
@@ -276,7 +300,7 @@ export function useAppState() {
     getLoan, setLoan, addLoanPayment,
     addHoliday, removeHoliday,
     getCommission, setCommissionForMonth,
-    bulkSetStaff, bulkSetAllAtt,
+    bulkSetStaff, bulkSetAllAtt, importStaff,
     addAudit: addAuditEntry,
     reload: loadAll,
   };

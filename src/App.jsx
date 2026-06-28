@@ -144,7 +144,7 @@ export default function App() {
             getCommission={A.getCommission}
             undo={A.undo} redo={A.redo} canUndo={A.canUndo} canRedo={A.canRedo}
             pushHistoryDirect={A.pushHistoryDirect} snapshot={A.snapshot}
-            bulkSetStaff={A.bulkSetStaff}
+            bulkSetStaff={A.bulkSetStaff} importStaff={A.importStaff}
             showToast={showToast}
           />
         )}

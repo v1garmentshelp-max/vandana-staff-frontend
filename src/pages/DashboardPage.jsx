@@ -138,7 +138,7 @@ export default function DashboardPage({
   getLoan, setLoan, addLoanPayment,
   getCommission,
   undo, redo, canUndo, canRedo,
-  pushHistoryDirect, snapshot, bulkSetStaff, showToast,
+  pushHistoryDirect, snapshot, bulkSetStaff, importStaff, showToast,
 }) {
   const [search,       setSearch]       = useState('');
   const [addModal,     setAddModal]     = useState(false);
@@ -273,28 +273,17 @@ export default function DashboardPage({
     e.target.value = '';
   }
 
-  function applyImport(finalChanges) {
+  async function applyImport(finalChanges) {
     const toApply = finalChanges || importChanges;
-    const snap = snapshot();
-    const newStaff = clone(staff);
-    toApply.forEach(c => {
-      if (c.type==='update') {
-        const idx = newStaff.findIndex(s => String(s.id)===String(c.id));
-        if (idx<0) return;
-        c.diffs.forEach(d => { newStaff[idx][d.field] = d.new; });
-      } else {
-        newStaff.push({ id:c.mapped?.id||String(Date.now()).slice(-5), name:c.name,
-          designation:'', branch:'', aadhar:'', phone:'', altPhone:'', dob:'',
-          salary:0, fixedCutting:0, advance:0, extraAdvance:0,
-          monthlyRecovery:0, totalOutstanding:0, totalSavings:0, ...(c.mapped||{}) });
-      }
-    });
-    pushHistoryDirect(snap);
-    bulkSetStaff(() => newStaff);
-    setImportChanges(null);
-    const upd = toApply.filter(c=>c.type==='update').length;
-    const add = toApply.filter(c=>c.type==='add').length;
-    showToast(`Import applied — ${upd} updated, ${add} added`);
+    try {
+      await importStaff(toApply);
+      setImportChanges(null);
+      const upd = toApply.filter(c=>c.type==='update').length;
+      const add = toApply.filter(c=>c.type==='add').length;
+      showToast(`Import applied — ${upd} updated, ${add} added`);
+    } catch(err) {
+      showToast('Import failed to save to database: ' + err.message, 'error');
+    }
   }
 
   function handleMarkAll() {
