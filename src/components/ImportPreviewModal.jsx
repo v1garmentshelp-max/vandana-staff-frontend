@@ -22,6 +22,8 @@ export default function ImportPreviewModal({ changes, onConfirm, onCancel }) {
     changes.forEach((c, idx) => {
       if (c.type === 'add') {
         initChecked[`${c.id}-${idx}|__add__`] = true;
+      } else if (c.type === 'delete') {
+        initChecked[`${c.id}-${idx}|__delete__`] = true;
       } else {
         (c.diffs || []).forEach(d => {
           const key = `${c.id}-${idx}|${d.field}`;
@@ -35,7 +37,7 @@ export default function ImportPreviewModal({ changes, onConfirm, onCancel }) {
   const [mergeMode, setMergeMode] = useState(() => {
     const initMerge = {};
     changes.forEach((c, idx) => {
-      if (c.type !== 'add') {
+      if (c.type === 'update') {
         (c.diffs || []).forEach(d => {
           const key = `${c.id}-${idx}|${d.field}`;
           if (MERGE_ELIGIBLE.includes(d.field)) initMerge[key] = 'merge';
@@ -56,6 +58,9 @@ export default function ImportPreviewModal({ changes, onConfirm, onCancel }) {
     if (c.type === 'add') {
       const addKey = `${c.id}-${idx}|__add__`;
       newChecked[addKey] = !checked[addKey];
+    } else if (c.type === 'delete') {
+      const delKey = `${c.id}-${idx}|__delete__`;
+      newChecked[delKey] = !checked[delKey];
     } else {
       const keys = (c.diffs||[]).map(d => `${c.id}-${idx}|${d.field}`);
       const allOn = keys.every(k => checked[k]);
@@ -67,17 +72,22 @@ export default function ImportPreviewModal({ changes, onConfirm, onCancel }) {
   // Count selected
   const selectedCount = changes.reduce((acc, c, idx) => {
     if (c.type === 'add') return acc + (checked[`${c.id}-${idx}|__add__`] ? 1 : 0);
+    if (c.type === 'delete') return acc + (checked[`${c.id}-${idx}|__delete__`] ? 1 : 0);
     return acc + (c.diffs||[]).filter(d => checked[`${c.id}-${idx}|${d.field}`]).length;
   }, 0);
 
   const updated = changes.filter(c => c.type === 'update');
   const added   = changes.filter(c => c.type === 'add');
+  const deleted = changes.filter(c => c.type === 'delete');
 
   // Build final changes to pass up
   function buildFinal() {
     return changes.map((c, idx) => {
       if (c.type === 'add') {
         return checked[`${c.id}-${idx}|__add__`] ? c : null;
+      }
+      if (c.type === 'delete') {
+        return checked[`${c.id}-${idx}|__delete__`] ? c : null;
       }
       const filteredDiffs = (c.diffs||[])
         .filter(d => checked[`${c.id}-${idx}|${d.field}`])
@@ -101,6 +111,7 @@ export default function ImportPreviewModal({ changes, onConfirm, onCancel }) {
         {[
           ['ti-refresh', 'Updates',   updated.length, 'var(--b100)', 'var(--b600)'],
           ['ti-plus',    'New Staff',  added.length,  '#d4edda',    '#1a6b35'],
+          ['ti-trash',   'Removed',    deleted.length,'var(--r100)', 'var(--r600)'],
         ].map(([ic,lb,ct,bg,col]) => (
           <div key={lb} style={{ flex:1, padding:'10px 14px', background:bg, borderRadius:9, display:'flex', alignItems:'center', gap:10 }}>
             <i className={`ti ${ic}`} style={{ fontSize:18, color:col }}/>
@@ -129,32 +140,43 @@ export default function ImportPreviewModal({ changes, onConfirm, onCancel }) {
       <div style={{ maxHeight:420, overflowY:'auto', display:'flex', flexDirection:'column', gap:10 }}>
         {changes.map((c, i) => {
           const isAdd = c.type === 'add';
+          const isDel = c.type === 'delete';
           const addKey = `${c.id}-${i}|__add__`;
-          const allFieldKeys = isAdd ? [addKey] : (c.diffs||[]).map(d=>`${c.id}-${i}|${d.field}`);
+          const delKey = `${c.id}-${i}|__delete__`;
+          const allFieldKeys = isAdd ? [addKey] : isDel ? [delKey] : (c.diffs||[]).map(d=>`${c.id}-${i}|${d.field}`);
           const allChecked = allFieldKeys.every(k => checked[k]);
           const someChecked = allFieldKeys.some(k => checked[k]);
 
           return (
             <div key={`${c.id}-${c.type}-${i}`} style={{ border:'1px solid var(--border)', borderRadius:10 }}>
               {/* Card header */}
-              <div style={{ padding:'9px 14px', background:isAdd?'#d4edda':'var(--s2)', display:'flex', alignItems:'center', gap:8 }}>
+              <div style={{
+                padding:'9px 14px',
+                background: isAdd ? '#d4edda' : isDel ? 'var(--r100)' : 'var(--s2)',
+                display:'flex', alignItems:'center', gap:8
+              }}>
                 {/* Select-all checkbox for this employee */}
                 <input type="checkbox"
                   checked={allChecked}
                   ref={el => { if(el) el.indeterminate = !allChecked && someChecked; }}
                   onChange={() => toggleAll(c, i)}
-                  style={{ width:14, height:14, cursor:'pointer', accentColor:'var(--g800)', flexShrink:0 }}
+                  style={{ width:14, height:14, cursor:'pointer', accentColor: isDel ? 'var(--r600)' : 'var(--g800)', flexShrink:0 }}
                 />
-                <i className={`ti ${isAdd?'ti-user-plus':'ti-edit'}`} style={{ fontSize:13, color:isAdd?'#1a6b35':'var(--b600)' }}/>
+                <i className={`ti ${isAdd ? 'ti-user-plus' : isDel ? 'ti-user-minus' : 'ti-edit'}`}
+                  style={{ fontSize:13, color: isAdd ? '#1a6b35' : isDel ? 'var(--r600)' : 'var(--b600)' }}/>
                 <span style={{ fontWeight:600, fontSize:13 }}>{c.name}</span>
                 <span style={{ fontSize:11, color:'var(--t3)' }}>ID: {c.id}</span>
-                <span style={{ marginLeft:'auto', fontSize:11, padding:'1px 8px', borderRadius:99, background:isAdd?'#1a6b35':'var(--b600)', color:'#fff', fontWeight:600 }}>
-                  {isAdd ? 'NEW' : 'UPDATE'}
+                <span style={{
+                  marginLeft:'auto', fontSize:11, padding:'1px 8px', borderRadius:99,
+                  background: isAdd ? '#1a6b35' : isDel ? 'var(--r600)' : 'var(--b600)',
+                  color:'#fff', fontWeight:600
+                }}>
+                  {isAdd ? 'NEW' : isDel ? 'REMOVE' : 'UPDATE'}
                 </span>
               </div>
 
               {/* Field rows */}
-              {!isAdd && c.diffs && c.diffs.length > 0 && (
+              {!isAdd && !isDel && c.diffs && c.diffs.length > 0 && (
                 <div style={{ padding:'4px 14px' }}>
                   {c.diffs.map((d, j) => {
                     const key       = `${c.id}-${i}|${d.field}`;
@@ -241,6 +263,15 @@ export default function ImportPreviewModal({ changes, onConfirm, onCancel }) {
                   <input type="checkbox" checked={checked[addKey]} onChange={()=>toggleCheck(addKey)}
                     style={{ width:14, height:14, cursor:'pointer', accentColor:'var(--g800)', marginRight:8 }}/>
                   Include this new staff member in import
+                </div>
+              )}
+
+              {/* Delete staff row */}
+              {isDel && (
+                <div style={{ padding:'9px 14px 10px', fontSize:12, color:'var(--t2)', background:'var(--r50)', borderTop:'1px solid var(--border)' }}>
+                  <input type="checkbox" checked={checked[delKey]} onChange={()=>toggleCheck(delKey)}
+                    style={{ width:14, height:14, cursor:'pointer', accentColor:'var(--r600)', marginRight:8 }}/>
+                  Confirm removing this staff member (not in Excel file)
                 </div>
               )}
             </div>

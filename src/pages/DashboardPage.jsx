@@ -232,6 +232,9 @@ export default function DashboardPage({
           'totalSavings':['totalsavings','accumulatedsavings'],
         };
         const changes = [];
+        const excelIds = new Set();
+        const excelNames = new Set();
+
         rows.forEach(row => {
           const r = {};
           Object.keys(row).forEach(k => { r[normKey(k)] = row[k]; });
@@ -246,18 +249,36 @@ export default function DashboardPage({
           const rowId   = String(mapped.id||'').trim();
           const rowName = String(mapped.name||'').trim().toUpperCase();
           if (!rowId && !rowName) return;
+
+          if (rowId) excelIds.add(rowId);
+          if (rowName) excelNames.add(rowName);
+
           const exist = staff.find(s =>
             (rowId   && String(s.id) === rowId) ||
             (rowName && s.name.toUpperCase() === rowName)
           );
+
           if (exist) {
             const diffs = [];
             Object.entries(mapped).forEach(([k, newV]) => {
               if (k==='id'||k==='name') return;
               let finalV = newV;
               if (MERGE.includes(k)) finalV = (Number(exist[k])||0) + (Number(newV)||0);
-              if (String(finalV) !== String(exist[k]||''))
+              
+              let isDiff = false;
+              if (NUM.includes(k)) {
+                const oldNum = Number(exist[k]) || 0;
+                const newNum = Number(finalV) || 0;
+                if (oldNum !== newNum) isDiff = true;
+              } else {
+                const oldStr = String(exist[k] || '').trim();
+                const newStr = String(finalV || '').trim();
+                if (oldStr !== newStr) isDiff = true;
+              }
+
+              if (isDiff) {
                 diffs.push({ field:k, old:exist[k], new:finalV, importedVal:newV });
+              }
             });
             if (diffs.length) changes.push({ type:'update', id:exist.id, name:exist.name, diffs, mapped });
           } else if (rowName) {
@@ -265,6 +286,17 @@ export default function DashboardPage({
             changes.push({ type:'add', id:rowId||genId, name:rowName, diffs:[], mapped });
           }
         });
+
+        // Find removed staff (exist in dashboard/db but not in imported Excel sheet)
+        staff.forEach(s => {
+          const sName = s.name.toUpperCase();
+          const sId = String(s.id);
+          const inExcel = excelIds.has(sId) || excelNames.has(sName);
+          if (!inExcel) {
+            changes.push({ type:'delete', id:s.id, name:s.name, diffs:[], mapped:{} });
+          }
+        });
+
         if (!changes.length) { showToast('No changes detected','info'); return; }
         setImportChanges(changes);
       } catch(err) { showToast('Import failed: '+err.message,'error'); }
