@@ -39,7 +39,7 @@ Net Payable      : ${inr(sal.netPayable)}
 💰 *Savings*
 Monthly Deduction : ${inr(s.fixedCutting)}
 This Month        : ${isConf ? '✅ Confirmed' : '⏳ Pending'}
-Total Savings     : ${inr(savings.total)}
+Total Savings     : ${inr(s.totalSavings)}
 
 🏦 *Loan*
 Total Loan       : ${inr(loan.total)}
@@ -424,7 +424,7 @@ export default function DashboardPage({
                         {isConf?'Confirmed':'Confirm'}
                       </button>
                     </td>
-                    <td style={{ fontWeight:600,color:'var(--b600)' }}>{inr(saved.total)}</td>
+                    <td style={{ fontWeight:600,color:'var(--b600)' }}>{inr(s.totalSavings)}</td>
                     {/* Attendance counts */}
                     <td style={{ color:'#1a6b35',fontWeight:600 }}>{sal.daysPresent}</td>
                     <td style={{ color:'var(--b600)' }}>{sal.daysPL}</td>
