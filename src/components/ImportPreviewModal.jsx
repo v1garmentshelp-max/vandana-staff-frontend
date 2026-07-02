@@ -54,6 +54,15 @@ export default function ImportPreviewModal({ changes, onConfirm, onCancel }) {
   function toggleMerge(key) {
     setMergeMode(p => ({ ...p, [key]: p[key] === 'merge' ? 'replace' : 'merge' }));
   }
+  function setAllMergeMode(mode) {
+    setMergeMode(p => {
+      const newModes = { ...p };
+      Object.keys(newModes).forEach(k => {
+        newModes[k] = mode;
+      });
+      return newModes;
+    });
+  }
   function toggleAll(c, idx) {
     const newChecked = { ...checked };
     if (c.type === 'add') {
@@ -154,12 +163,19 @@ export default function ImportPreviewModal({ changes, onConfirm, onCancel }) {
       </div>
 
       {/* Check/Uncheck All toolbar */}
-      <div style={{ display:'flex', gap:8, marginBottom:12, paddingLeft:4 }}>
+      <div style={{ display:'flex', gap:8, marginBottom:12, paddingLeft:4, flexWrap:'wrap' }}>
         <button className="btn btn-xs btn-primary" onClick={() => checkAll(true)}>
           <i className="ti ti-checkbox" style={{ marginRight:3 }}/>Select All Changes
         </button>
         <button className="btn btn-xs" onClick={() => checkAll(false)}>
           <i className="ti ti-square" style={{ marginRight:3 }}/>Deselect All Changes
+        </button>
+        <div style={{ width:1, height:18, background:'var(--border)', margin:'0 4px' }}/>
+        <button className="btn btn-xs" style={{ background:'#fff', borderColor:'var(--b600)', color:'var(--b600)' }} onClick={() => setAllMergeMode('merge')}>
+          <i className="ti ti-plus" style={{ marginRight:3 }}/>Merge All Financials
+        </button>
+        <button className="btn btn-xs" style={{ background:'#fff', borderColor:'var(--a600)', color:'var(--a600)' }} onClick={() => setAllMergeMode('replace')}>
+          <i className="ti ti-replace" style={{ marginRight:3 }}/>Replace All Financials
         </button>
       </div>
 
