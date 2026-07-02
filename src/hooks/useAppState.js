@@ -16,11 +16,16 @@ export function useAppState(showToast) {
   const [auditLog,   setAuditLog]   = useState([]);
   const [attMonths,  setAttMonths]  = useState([]);
   const [curMonth,   setCurMonth_]  = useState(monthKey());
+  const [visitedMonths, setVisitedMonths] = useState(() => [monthKey()]);
   const [curBranch,  setCurBranch]  = useState('ALL BRANCHES');
   const [loading,    setLoading]    = useState(true);
   const [error,      setError]      = useState(null);
   const [history,    setHistory]    = useState([]);
   const [future,     setFuture]     = useState([]);
+
+  useEffect(() => {
+    setVisitedMonths(p => [...new Set([...p, curMonth])]);
+  }, [curMonth]);
 
   useEffect(() => { loadAll(); }, []);
   useEffect(() => { loadAttendance(curMonth); }, [curMonth]);
@@ -378,7 +383,7 @@ export function useAppState(showToast) {
   }
 
   const allMonths = (() => {
-    const s = new Set(attMonths);
+    const s = new Set([...attMonths, ...visitedMonths]);
     s.add(curMonth); s.add(monthKey());
     return [...s].sort().reverse();
   })();
