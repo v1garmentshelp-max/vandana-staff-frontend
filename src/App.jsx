@@ -83,7 +83,7 @@ export default function App() {
           'extraAdvance':['extraadvance','loan','loanamount'],
           'monthlyRecovery':['monthlyrecovery','loanrecovery','emiamount'],
           'totalOutstanding':['totaloutstanding','remainingloan','loanbalance'],
-          'totalSavings':['totalsavings','accumulatedsavings'],
+          'totalSavings':['totalsavings','totalsaving','accumulatedsavings'],
           'daysPresent':['dayspresent','presentdays','noofdayspresent','present','dayspresentcount'],
           'daysAbsent':['daysabsent','absentdays','noofdaysabsent','absent','daysabsentcount'],
         };
