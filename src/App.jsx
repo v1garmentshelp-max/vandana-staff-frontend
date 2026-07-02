@@ -50,10 +50,12 @@ export default function App() {
   const [importChanges, setImportChanges] = useState(null);
   const [importMonthModal, setImportMonthModal] = useState(false);
   const [selectedImportMonth, setSelectedImportMonth] = useState(A.curMonth);
+  const [viewYear, setViewYear] = useState(() => Number(A.curMonth.split('-')[0]));
   const importRef = useRef();
 
   useEffect(() => {
     setSelectedImportMonth(A.curMonth);
+    setViewYear(Number(A.curMonth.split('-')[0]));
   }, [A.curMonth]);
 
   function handleImportFile(e) {
@@ -195,6 +197,7 @@ export default function App() {
 
   const triggerImport = useCallback(() => {
     setSelectedImportMonth(A.curMonth);
+    setViewYear(Number(A.curMonth.split('-')[0]));
     setImportMonthModal(true);
   }, [A.curMonth]);
 
@@ -346,26 +349,65 @@ export default function App() {
       )}
 
       {importMonthModal && (
-        <Modal title="Select Target Month for Import" onClose={()=>setImportMonthModal(false)} width={400}>
-          <div style={{ display:'flex', flexDirection:'column', gap:15, padding:'10px 0' }}>
-            <p style={{ fontSize:13, color:'var(--t2)' }}>
+        <Modal title="Select Target Month for Import" onClose={()=>setImportMonthModal(false)} width={420}>
+          <div style={{ display:'flex', flexDirection:'column', gap:15, padding:'5px 0' }}>
+            <p style={{ fontSize:13, color:'var(--t2)', margin:0 }}>
               Choose the month to apply the imported data. The salary rules (30/31-day plans) will adjust automatically.
             </p>
-            <div style={{ display:'flex', flexDirection:'column', gap:5 }}>
-              <label style={{ fontSize:11, fontWeight:600, color:'var(--t3)' }}>Target Month</label>
-              <select value={selectedImportMonth} onChange={e=>setSelectedImportMonth(e.target.value)} style={{ width:'100%' }}>
-                {A.allMonths.map(m=><option key={m} value={m}>{formatMonth(m)}</option>)}
-              </select>
-            </div>
-            <div style={{ display:'flex', justifyContent:'end', gap:8, marginTop:10 }}>
-              <button className="btn btn-sm" onClick={()=>setImportMonthModal(false)}>Cancel</button>
-              <button className="btn btn-sm btn-primary" onClick={()=>{
-                A.setCurMonth(selectedImportMonth);
-                setImportMonthModal(false);
-                setTimeout(()=>importRef.current?.click(), 100);
-              }}>
-                Proceed to Upload
+            
+            {/* Year Selector */}
+            <div style={{ display:'flex', alignItems:'center', justifyContent:'space-between', padding:'0 10px', background:'var(--s2)', borderRadius:8, height:40 }}>
+              <button className="btn btn-sm btn-ghost btn-icon" onClick={()=>setViewYear(y=>y-1)} style={{ border:'none' }}>
+                <i className="ti ti-chevron-left" style={{ fontSize:16 }}/>
               </button>
+              <span style={{ fontSize:15, fontWeight:700, color:'var(--g800)' }}>{viewYear}</span>
+              <button className="btn btn-sm btn-ghost btn-icon" onClick={()=>setViewYear(y=>y+1)} style={{ border:'none' }}>
+                <i className="ti ti-chevron-right" style={{ fontSize:16 }}/>
+              </button>
+            </div>
+
+            {/* Months Grid */}
+            <div style={{ display:'grid', gridTemplateColumns:'repeat(3, 1fr)', gap:8 }}>
+              {['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'].map((label, idx) => {
+                const mStr = `${viewYear}-${String(idx+1).padStart(2, '0')}`;
+                const isActive = selectedImportMonth === mStr;
+                return (
+                  <button
+                    key={label}
+                    onClick={() => setSelectedImportMonth(mStr)}
+                    style={{
+                      padding: '12px 0',
+                      borderRadius: 8,
+                      border: '1px solid',
+                      borderColor: isActive ? 'var(--g800)' : 'var(--border)',
+                      background: isActive ? 'var(--g800)' : 'var(--surface)',
+                      color: isActive ? '#fff' : 'var(--t1)',
+                      fontWeight: isActive ? 600 : 400,
+                      fontSize: 13,
+                      cursor: 'pointer',
+                      transition: 'all 0.12s'
+                    }}
+                  >
+                    {label}
+                  </button>
+                );
+              })}
+            </div>
+
+            <div style={{ display:'flex', justifyContent:'space-between', alignItems:'center', marginTop:10, borderTop:'1px solid var(--border)', paddingTop:12 }}>
+              <span style={{ fontSize:12, color:'var(--t3)', fontWeight:500 }}>
+                Selected: <span style={{ color:'var(--g800)', fontWeight:700 }}>{formatMonth(selectedImportMonth)}</span>
+              </span>
+              <div style={{ display:'flex', gap:8 }}>
+                <button className="btn btn-sm" onClick={()=>setImportMonthModal(false)}>Cancel</button>
+                <button className="btn btn-sm btn-primary" onClick={()=>{
+                  A.setCurMonth(selectedImportMonth);
+                  setImportMonthModal(false);
+                  setTimeout(()=>importRef.current?.click(), 100);
+                }}>
+                  Proceed to Upload
+                </button>
+              </div>
             </div>
           </div>
         </Modal>
