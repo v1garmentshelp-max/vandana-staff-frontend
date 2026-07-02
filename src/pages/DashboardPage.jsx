@@ -3,6 +3,7 @@ import { StatCard, SectionHeader, ConfirmModal, EmptyState } from '../components
 import StaffModal         from '../components/StaffModal.jsx';
 import AttModal           from '../components/AttModal.jsx';
 import LoanModal          from '../components/LoanModal.jsx';
+import SalaryBreakupModal from '../components/SalaryBreakupModal.jsx';
 import { calcSalary, todayStr, monthKey, inr, formatMonth, clone } from '../utils/helpers.js';
 import { ATT_STATUSES, ATT_LABELS, BRANCHES } from '../utils/constants.js';
 
@@ -145,6 +146,7 @@ export default function DashboardPage({
   const [attStaff,     setAttStaff]     = useState(null);
   const [loanStaff,    setLoanStaff]    = useState(null);
   const [confirmDel,   setConfirmDel]   = useState(null);
+  const [breakupStaff, setBreakupStaff] = useState(null);
   const [filterAdv,    setFilterAdv]    = useState(false);
   const [filterLoan,   setFilterLoan]   = useState(false);
   const [filterDesig,  setFilterDesig]  = useState('ALL');
@@ -431,9 +433,14 @@ export default function DashboardPage({
                     {/* Salary */}
                     <td style={{ fontWeight:600,color:'var(--g800)' }}>{inr(sal.tillDateSalary)}</td>
                     <td>
-                      <span style={{ fontWeight:700, color:sal.netPayable<0?'var(--r600)':'var(--t1)' }}>
-                        {inr(sal.netPayable)}
-                      </span>
+                      <div style={{ display:'flex', alignItems:'center', gap:5 }}>
+                        <span style={{ fontWeight:700, color:sal.netPayable<0?'var(--r600)':'var(--t1)' }}>
+                          {inr(sal.netPayable)}
+                        </span>
+                        <button className="btn btn-xs btn-ghost btn-icon" onClick={()=>setBreakupStaff(s)} title="View salary breakup">
+                          <i className="ti ti-calculator" style={{ fontSize:12 }}/>
+                        </button>
+                      </div>
                     </td>
                     {/* Actions */}
                     <td>
@@ -528,6 +535,14 @@ export default function DashboardPage({
             }
           }}
           onCancel={()=>setConfirmDel(null)}/>
+      )}
+      {breakupStaff && (
+        <SalaryBreakupModal
+          staff={breakupStaff}
+          sal={calcSalary({ ...breakupStaff, _commEarned: getStaffCommission(breakupStaff.id) }, monthAtt[breakupStaff.id]||{}, curMonth, weeklyOff, holidays)}
+          curMonth={curMonth}
+          onClose={()=>setBreakupStaff(null)}
+        />
       )}
     </div>
   );

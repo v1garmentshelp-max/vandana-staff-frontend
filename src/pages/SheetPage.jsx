@@ -1,6 +1,7 @@
 import { useState, useRef } from 'react';
 import * as XLSX from 'xlsx';
 import { SectionHeader, Tabs } from '../components/UI.jsx';
+import SalaryBreakupModal from '../components/SalaryBreakupModal.jsx';
 import { dateRange,isWeeklyOff,isHoliday,todayStr,monthKey,calcSalary,formatMonth,inr } from '../utils/helpers.js';
 import { ATT_STATUSES, BRANCHES, DESIGNATIONS } from '../utils/constants.js';
 
@@ -33,6 +34,7 @@ export default function SheetPage({
   getCommission,getSavings,triggerImport,
 }) {
   const [tab,setTab]=useState('staff');
+  const [breakupStaff, setBreakupStaff] = useState(null);
   // months come from parent allMonths prop
   const months = (typeof allMonths !== 'undefined' && allMonths.length) ? allMonths : [curMonth];
   const days=dateRange(curMonth); const todaySt=todayStr(); const monthAt=allAtt[curMonth]||{};
@@ -130,7 +132,14 @@ export default function SheetPage({
                   <tr key={s.id}>
                     {STAFF_COLS.map(c=><td key={c.k} style={{padding:0}}><EditCell value={s[c.k]} numeric={c.numeric} disabled={c.disabled} options={c.options} onChange={v=>editStaffCell(idx,c.k,v)}/></td>)}
                     <td style={{padding:'8px 12px',color:'var(--g800)',fontWeight:600}}>{inr(sal.tillDateSalary)}</td>
-                    <td style={{padding:'8px 12px',fontWeight:700,color:sal.netPayable<0?'var(--r600)':'var(--t1)'}}>{inr(sal.netPayable)}</td>
+                    <td style={{padding:'8px 12px',fontWeight:700,color:sal.netPayable<0?'var(--r600)':'var(--t1)'}}>
+                      <div style={{ display:'flex', alignItems:'center', justifyContent:'space-between' }}>
+                        <span>{inr(sal.netPayable)}</span>
+                        <button className="btn btn-xs btn-ghost btn-icon" onClick={()=>setBreakupStaff(s)} title="View salary breakup" style={{ padding:2 }}>
+                          <i className="ti ti-calculator" style={{ fontSize:12 }}/>
+                        </button>
+                      </div>
+                    </td>
                   </tr>
                 );
               })}
@@ -171,6 +180,14 @@ export default function SheetPage({
             </tbody>
           </table>
         </div>
+      )}
+      {breakupStaff && (
+        <SalaryBreakupModal
+          staff={breakupStaff}
+          sal={calcSalary({ ...breakupStaff, _commEarned: getStaffCommission(breakupStaff.id) }, (allAtt[curMonth]||{})[breakupStaff.id]||{}, curMonth, weeklyOff, holidays)}
+          curMonth={curMonth}
+          onClose={()=>setBreakupStaff(null)}
+        />
       )}
     </div>
   );
