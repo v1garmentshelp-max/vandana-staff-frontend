@@ -17,25 +17,33 @@ function fmt(field, val) {
 }
 
 export default function ImportPreviewModal({ changes, onConfirm, onCancel }) {
-  // checked: { "staffId-index|field": true/false }
-  const initChecked = {};
-  // mergeMode: { "staffId-index|field": "merge"|"replace" }
-  const initMerge = {};
-
-  changes.forEach((c, idx) => {
-    if (c.type === 'add') {
-      initChecked[`${c.id}-${idx}|__add__`] = true;
-    } else {
-      (c.diffs || []).forEach(d => {
-        const key = `${c.id}-${idx}|${d.field}`;
-        initChecked[key] = true;
-        if (MERGE_ELIGIBLE.includes(d.field)) initMerge[key] = 'merge';
-      });
-    }
+  const [checked, setChecked] = useState(() => {
+    const initChecked = {};
+    changes.forEach((c, idx) => {
+      if (c.type === 'add') {
+        initChecked[`${c.id}-${idx}|__add__`] = true;
+      } else {
+        (c.diffs || []).forEach(d => {
+          const key = `${c.id}-${idx}|${d.field}`;
+          initChecked[key] = true;
+        });
+      }
+    });
+    return initChecked;
   });
 
-  const [checked,   setChecked]   = useState(initChecked);
-  const [mergeMode, setMergeMode] = useState(initMerge);
+  const [mergeMode, setMergeMode] = useState(() => {
+    const initMerge = {};
+    changes.forEach((c, idx) => {
+      if (c.type !== 'add') {
+        (c.diffs || []).forEach(d => {
+          const key = `${c.id}-${idx}|${d.field}`;
+          if (MERGE_ELIGIBLE.includes(d.field)) initMerge[key] = 'merge';
+        });
+      }
+    });
+    return initMerge;
+  });
 
   function toggleCheck(key) {
     setChecked(p => ({ ...p, [key]: !p[key] }));
@@ -127,7 +135,7 @@ export default function ImportPreviewModal({ changes, onConfirm, onCancel }) {
           const someChecked = allFieldKeys.some(k => checked[k]);
 
           return (
-            <div key={`${c.id}-${c.type}-${i}`} style={{ border:'1px solid var(--border)', borderRadius:10, overflow:'hidden' }}>
+            <div key={`${c.id}-${c.type}-${i}`} style={{ border:'1px solid var(--border)', borderRadius:10 }}>
               {/* Card header */}
               <div style={{ padding:'9px 14px', background:isAdd?'#d4edda':'var(--s2)', display:'flex', alignItems:'center', gap:8 }}>
                 {/* Select-all checkbox for this employee */}

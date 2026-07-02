@@ -337,6 +337,7 @@ export function useAppState(showToast) {
     } catch(e) {
       setCommission(s.commission);
       console.error('setCommission:', e.message);
+      if (showToast) showToast(`Failed to update commission: ${e.message}`, 'error');
       throw e;
     }
   }
@@ -361,6 +362,7 @@ export function useAppState(showToast) {
       return res;
     } catch(e) {
       console.error('importStaff:', e.message);
+      if (showToast) showToast(`Failed to import staff: ${e.message}`, 'error');
       throw e;
     }
   }
