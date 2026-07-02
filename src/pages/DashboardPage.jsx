@@ -242,7 +242,28 @@ export default function DashboardPage({
           Object.entries(FIELD_MAP).forEach(([ourKey, aliases]) => {
             for (const alias of aliases) {
               const v = r[alias];
-              if (v !== undefined && v !== '') { mapped[ourKey] = String(v).trim(); return; }
+              if (v !== undefined && v !== '') {
+                let strVal = String(v).trim();
+                if (ourKey === 'dob') {
+                  if (!isNaN(Number(v)) && Number(v) > 10000) {
+                    const dateObj = new Date((Number(v) - 25569) * 86400 * 1000);
+                    if (!isNaN(dateObj.getTime())) {
+                      strVal = dateObj.toISOString().slice(0, 10);
+                    }
+                  } else {
+                    const parts = strVal.split(/[\/\-]/);
+                    if (parts.length === 3) {
+                      if (parts[2].length === 4) {
+                        strVal = `${parts[2]}-${parts[1].padStart(2, '0')}-${parts[0].padStart(2, '0')}`;
+                      } else if (parts[0].length === 4) {
+                        strVal = `${parts[0]}-${parts[1].padStart(2, '0')}-${parts[2].padStart(2, '0')}`;
+                      }
+                    }
+                  }
+                }
+                mapped[ourKey] = strVal;
+                return;
+              }
             }
           });
           NUM.forEach(k => { if (mapped[k] !== undefined) mapped[k] = Number(mapped[k]) || 0; });

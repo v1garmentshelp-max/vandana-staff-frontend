@@ -69,6 +69,22 @@ export default function ImportPreviewModal({ changes, onConfirm, onCancel }) {
     setChecked(newChecked);
   }
 
+  function checkAll(val) {
+    const newChecked = {};
+    changes.forEach((c, idx) => {
+      if (c.type === 'add') {
+        newChecked[`${c.id}-${idx}|__add__`] = val;
+      } else if (c.type === 'delete') {
+        newChecked[`${c.id}-${idx}|__delete__`] = val;
+      } else {
+        (c.diffs || []).forEach(d => {
+          newChecked[`${c.id}-${idx}|${d.field}`] = val;
+        });
+      }
+    });
+    setChecked(newChecked);
+  }
+
   // Count selected
   const selectedCount = changes.reduce((acc, c, idx) => {
     if (c.type === 'add') return acc + (checked[`${c.id}-${idx}|__add__`] ? 1 : 0);
@@ -131,9 +147,19 @@ export default function ImportPreviewModal({ changes, onConfirm, onCancel }) {
       </div>
 
       {/* Legend */}
-      <div style={{ display:'flex', gap:16, marginBottom:12, padding:'8px 12px', background:'var(--s2)', borderRadius:8, fontSize:11, color:'var(--t3)' }}>
+      <div style={{ display:'flex', gap:16, marginBottom:10, padding:'8px 12px', background:'var(--s2)', borderRadius:8, fontSize:11, color:'var(--t3)' }}>
         <span><i className="ti ti-checkbox" style={{ marginRight:4, color:'var(--g800)' }}/>Check/uncheck to include or skip each field</span>
         <span><span style={{ fontWeight:600, color:'var(--b600)' }}>MERGE</span> = old + new &nbsp;|&nbsp; <span style={{ fontWeight:600, color:'var(--a600)' }}>REPLACE</span> = overwrite with new value</span>
+      </div>
+
+      {/* Check/Uncheck All toolbar */}
+      <div style={{ display:'flex', gap:8, marginBottom:12, paddingLeft:4 }}>
+        <button className="btn btn-xs btn-primary" onClick={() => checkAll(true)}>
+          <i className="ti ti-checkbox" style={{ marginRight:3 }}/>Select All Changes
+        </button>
+        <button className="btn btn-xs" onClick={() => checkAll(false)}>
+          <i className="ti ti-square" style={{ marginRight:3 }}/>Deselect All Changes
+        </button>
       </div>
 
       {/* Change cards */}
