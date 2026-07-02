@@ -30,12 +30,21 @@ function AttCell({ value, disabled, isToday, onChange }) {
 export default function SheetPage({
   staff,updateStaff,allAtt,markOne,allMonths,weeklyOff,holidays,
   curMonth,setCurMonth,pushHistoryDirect,snapshot,undo,redo,canUndo,canRedo,showToast,
+  getCommission,
 }) {
   const [tab,setTab]=useState('staff');
   // months come from parent allMonths prop
   const months = (typeof allMonths !== 'undefined' && allMonths.length) ? allMonths : [curMonth];
   const days=dateRange(curMonth); const todaySt=todayStr(); const monthAt=allAtt[curMonth]||{};
   const DAY=['Su','Mo','Tu','We','Th','Fr','Sa'];
+
+  function getStaffCommission(staffId) {
+    const data = getCommission ? getCommission(curMonth) : [];
+    const entry = data.find(d => d.staffId === staffId);
+    if (entry) return entry.empComm || 0;
+    const helperEntry = data.find(d => (d.helpers||[]).includes(staffId));
+    return helperEntry ? (helperEntry.perHelper || 0) : 0;
+  }
 
   const STAFF_COLS=[
     {k:'id',l:'ID',w:70,disabled:true},{k:'name',l:'Name',w:220},{k:'designation',l:'Designation',w:150,options:DESIGNATIONS},
@@ -74,7 +83,8 @@ export default function SheetPage({
     const wb=XLSX.utils.book_new();
     const staffRows=staff.map(s=>{
       const sAtt=(allAtt[curMonth]||{})[s.id]||{};
-      const sal=calcSalary(s,sAtt,curMonth,weeklyOff,holidays);
+      const commEarned=getStaffCommission(s.id);
+      const sal=calcSalary({...s, _commEarned:commEarned},sAtt,curMonth,weeklyOff,holidays);
       return{'ID':s.id,'Name':s.name,'Designation':s.designation,'Branch':s.branch,'Aadhar':s.aadhar,'Phone':s.phone,'Alt Phone':s.altPhone,'DOB':s.dob,'Salary':s.salary,'Fixed Cutting':s.fixedCutting,'Commission':sal.commEarned||0,'Advance':s.advance,'Extra Advance':s.extraAdvance,'Monthly Recovery':s.monthlyRecovery,'Outstanding':s.totalOutstanding,'Total Savings':s.totalSavings,'Days Present':sal.daysPresent,'PL':sal.daysPL,'UL':sal.daysUL,'Absent':sal.daysAbsent,'Paid Days':sal.paidDays,'Till-date Salary':sal.tillDateSalary,'Net Payable':sal.netPayable};
     });
     XLSX.utils.book_append_sheet(wb,XLSX.utils.json_to_sheet(staffRows),'Staff');
@@ -113,7 +123,8 @@ export default function SheetPage({
             <tbody>
               {staff.map((s,idx)=>{
                 const sAtt=(allAtt[curMonth]||{})[s.id]||{};
-                const sal=calcSalary(s,sAtt,curMonth,weeklyOff,holidays);
+                const commEarned=getStaffCommission(s.id);
+                const sal=calcSalary({...s, _commEarned:commEarned},sAtt,curMonth,weeklyOff,holidays);
                 return (
                   <tr key={s.id}>
                     {STAFF_COLS.map(c=><td key={c.k} style={{padding:0}}><EditCell value={s[c.k]} numeric={c.numeric} disabled={c.disabled} options={c.options} onChange={v=>editStaffCell(idx,c.k,v)}/></td>)}

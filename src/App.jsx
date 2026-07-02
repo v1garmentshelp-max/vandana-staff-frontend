@@ -154,6 +154,7 @@ export default function App() {
             allAtt={A.allAtt} markOne={A.markOne}
             weeklyOff={A.weeklyOff} holidays={A.holidays}
             curMonth={A.curMonth} setCurMonth={A.setCurMonth} allMonths={A.allMonths}
+            getCommission={A.getCommission}
             pushHistoryDirect={A.pushHistoryDirect} snapshot={A.snapshot}
             undo={A.undo} redo={A.redo} canUndo={A.canUndo} canRedo={A.canRedo}
             showToast={showToast}
