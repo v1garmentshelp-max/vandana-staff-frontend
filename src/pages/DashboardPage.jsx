@@ -213,7 +213,7 @@ export default function DashboardPage({
         const ws   = wb.Sheets[wb.SheetNames[0]];
         const rows = XLSX.utils.sheet_to_json(ws, { defval:'' });
         const MERGE = ['advance','extraAdvance','totalSavings'];
-        const NUM   = ['salary','fixedCutting','advance','extraAdvance','monthlyRecovery','totalOutstanding','totalSavings'];
+        const NUM   = ['salary','fixedCutting','advance','extraAdvance','monthlyRecovery','totalOutstanding','totalSavings','daysPresent','daysAbsent'];
         const FIELD_MAP = {
           'id':['id','empid','employeeid'],
           'name':['name','fullname','staffname','employeename'],
@@ -230,6 +230,8 @@ export default function DashboardPage({
           'monthlyRecovery':['monthlyrecovery','loanrecovery','emiamount'],
           'totalOutstanding':['totaloutstanding','remainingloan','loanbalance'],
           'totalSavings':['totalsavings','accumulatedsavings'],
+          'daysPresent':['dayspresent','presentdays','noofdayspresent','present','dayspresentcount'],
+          'daysAbsent':['daysabsent','absentdays','noofdaysabsent','absent','daysabsentcount'],
         };
         const changes = [];
         const excelIds = new Set();

@@ -4,13 +4,13 @@ import { genId } from '../utils/helpers.js';
 import { BRANCHES, DESIGNATIONS } from '../utils/constants.js';
 
 export default function StaffModal({ existing, onSave, onClose }) {
-  const [form,setForm]=useState(existing||{id:'',name:'',designation:'',branch:'',aadhar:'',phone:'',altPhone:'',dob:'',salary:'',fixedCutting:'',advance:'0',extraAdvance:'0',monthlyRecovery:'0',totalOutstanding:'0',totalSavings:'0'});
+  const [form,setForm]=useState(existing||{id:'',name:'',designation:'',branch:'',aadhar:'',phone:'',altPhone:'',dob:'',salary:'',fixedCutting:'',advance:'0',extraAdvance:'0',monthlyRecovery:'0',totalOutstanding:'0',totalSavings:'0',daysPresent:'0',daysAbsent:'0'});
   const [errors,setErrors]=useState({});
   const f=(k,v)=>{ setForm(p=>({...p,[k]:v})); setErrors(p=>({...p,[k]:undefined})); };
   function validate(){ const e={}; if(!form.name.trim()) e.name='Required'; if(!form.salary||Number(form.salary)<0) e.salary='Required'; return e; }
   function save(){
     const e=validate(); if(Object.keys(e).length){setErrors(e);return;}
-    onSave({...form,id:form.id.trim()||genId('VM'),salary:Number(form.salary),fixedCutting:Number(form.fixedCutting||0),advance:Number(form.advance||0),extraAdvance:Number(form.extraAdvance||0),monthlyRecovery:Number(form.monthlyRecovery||0),totalOutstanding:Number(form.totalOutstanding||0),totalSavings:Number(form.totalSavings||0)});
+    onSave({...form,id:form.id.trim()||genId('VM'),salary:Number(form.salary),fixedCutting:Number(form.fixedCutting||0),advance:Number(form.advance||0),extraAdvance:Number(form.extraAdvance||0),monthlyRecovery:Number(form.monthlyRecovery||0),totalOutstanding:Number(form.totalOutstanding||0),totalSavings:Number(form.totalSavings||0),daysPresent:Number(form.daysPresent||0),daysAbsent:Number(form.daysAbsent||0)});
     onClose();
   }
   const err=(k)=>errors[k]&&<p style={{fontSize:11,color:'var(--r600)',marginTop:3}}>{errors[k]}</p>;
@@ -46,7 +46,7 @@ export default function StaffModal({ existing, onSave, onClose }) {
 
       <div className="divider"/>
       {/* Section: Financials */}
-      <p style={{fontSize:11,fontWeight:600,color:'var(--t3)',textTransform:'uppercase',letterSpacing:'.06em',marginBottom:10}}>Financial Details</p>
+      <p style={{fontSize:11,fontWeight:600,color:'var(--t3)',textTransform:'uppercase',letterSpacing:'.06em',marginBottom:10}}>Financial & Attendance Details</p>
       <div style={{display:'grid',gridTemplateColumns:'1fr 1fr 1fr',gap:'0 14px'}}>
         <Field label="Monthly Salary (₹)" required>{nn('salary',{placeholder:'e.g. 15000'})}{err('salary')}</Field>
         <Field label="Fixed Cutting / Month (₹)" hint="Savings deduction">{nn('fixedCutting',{placeholder:'e.g. 500'})}</Field>
@@ -55,6 +55,8 @@ export default function StaffModal({ existing, onSave, onClose }) {
         <Field label="Monthly Recovery (₹)" hint="Loan instalment">{nn('monthlyRecovery',{placeholder:'0'})}</Field>
         <Field label="Total Outstanding (₹)" hint="Remaining loan balance">{nn('totalOutstanding',{placeholder:'0'})}</Field>
         <Field label="Total Savings (₹)" hint="Accumulated savings">{nn('totalSavings',{placeholder:'0'})}</Field>
+        <Field label="Days Present" hint="Manual override count">{nn('daysPresent',{placeholder:'0'})}</Field>
+        <Field label="Days Absent" hint="Manual override count">{nn('daysAbsent',{placeholder:'0'})}</Field>
       </div>
 
       <div className="divider"/>

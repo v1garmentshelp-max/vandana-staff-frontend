@@ -9,6 +9,7 @@ const LABELS = {
   phone:'Phone', altPhone:'Alt Phone', dob:'DOB', salary:'Salary',
   fixedCutting:'Fixed Cutting', advance:'Advance', extraAdvance:'Extra Advance',
   monthlyRecovery:'Monthly Recovery', totalOutstanding:'Total Outstanding', totalSavings:'Total Savings',
+  daysPresent:'Days Present', daysAbsent:'Days Absent',
 };
 
 function fmt(field, val) {

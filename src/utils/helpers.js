@@ -25,26 +25,37 @@ export function calcSalary(emp, sAtt={}, ym, weeklyOff, holidays, upTo=todayStr(
 
   let daysPresent=0, daysPL=0, daysUL=0, daysAbsent=0, paidDays=0;
 
-  range.forEach(d=>{
-    const future = d>upTo;
-    const off    = isWeeklyOff(d,weeklyOff);
-    const hol    = isHoliday(d,holidays);
-    const st     = sAtt[d];
-    if(off){ if(!future) paidDays++; return; }
-    if(hol){ if(!future){ if(st==='A') daysAbsent++; else paidDays++; } return; }
-    if(future) return;
-    if(st==='P')  { daysPresent++; paidDays++; }
-    else if(st==='PL'){ daysPL++; paidDays++; }
-    else if(st==='UL') daysUL++;
-    else if(st==='A')  daysAbsent++;
-  });
+  const hasImportedDays = (emp.daysPresent !== undefined && emp.daysPresent !== null && emp.daysPresent !== '') ||
+                          (emp.daysAbsent !== undefined && emp.daysAbsent !== null && emp.daysAbsent !== '');
+
+  if (hasImportedDays) {
+    daysPresent = Number(emp.daysPresent || 0);
+    daysAbsent = Number(emp.daysAbsent || 0);
+    const weeklyOffCount = range.filter(d => isWeeklyOff(d, weeklyOff) && d <= upTo).length;
+    const holidayCount = range.filter(d => isHoliday(d, holidays) && d <= upTo).length;
+    paidDays = daysPresent + weeklyOffCount + holidayCount;
+  } else {
+    range.forEach(d=>{
+      const future = d>upTo;
+      const off    = isWeeklyOff(d,weeklyOff);
+      const hol    = isHoliday(d,holidays);
+      const st     = sAtt[d];
+      if(off){ if(!future) paidDays++; return; }
+      if(hol){ if(!future){ if(st==='A') daysAbsent++; else paidDays++; } return; }
+      if(future) return;
+      if(st==='P')  { daysPresent++; paidDays++; }
+      else if(st==='PL'){ daysPL++; paidDays++; }
+      else if(st==='UL') daysUL++;
+      else if(st==='A')  daysAbsent++;
+    });
+  }
 
   const tillDateSalary = Math.round(paidDays * dailyRate);
   const fixedCut       = Number(emp.fixedCutting||0);
   const advanceCut     = Number(emp.advance||0);
   const loanCut        = Number(emp.monthlyRecovery||0);
   const commEarned     = Number(emp._commEarned||0);   // injected per-render from commission data
-  const netPayable     = tillDateSalary - fixedCut - advanceCut - loanCut + commEarned;
+  const netPayable     = Math.max(0, tillDateSalary - fixedCut - advanceCut - loanCut + commEarned);
 
   return { allWorkDays, dailyRate:Math.round(dailyRate), daysPresent, daysPL, daysUL, daysAbsent, paidDays, tillDateSalary, fixedCut, advanceCut, loanCut, commEarned, netPayable };
 }

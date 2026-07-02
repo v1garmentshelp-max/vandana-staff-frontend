@@ -46,6 +46,8 @@ export default function SheetPage({
     {k:'advance',l:'Advance',w:90,numeric:true},{k:'extraAdvance',l:'Extra Adv',w:90,numeric:true},
     {k:'monthlyRecovery',l:'Loan EMI',w:90,numeric:true},{k:'totalOutstanding',l:'Outstanding',w:100,numeric:true},
     {k:'totalSavings',l:'Tot Savings',w:100,numeric:true},
+    {k:'daysPresent',l:'Days Present',w:100,numeric:true},
+    {k:'daysAbsent',l:'Days Absent',w:100,numeric:true},
   ];
 
   async function editStaffCell(idx,key,val){
