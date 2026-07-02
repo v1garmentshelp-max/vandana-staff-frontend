@@ -30,7 +30,7 @@ function AttCell({ value, disabled, isToday, onChange }) {
 export default function SheetPage({
   staff,updateStaff,allAtt,markOne,allMonths,weeklyOff,holidays,
   curMonth,setCurMonth,pushHistoryDirect,snapshot,undo,redo,canUndo,canRedo,showToast,
-  getCommission,
+  getCommission,getSavings,triggerImport,
 }) {
   const [tab,setTab]=useState('staff');
   // months come from parent allMonths prop
@@ -54,7 +54,7 @@ export default function SheetPage({
     {k:'_commEarned',l:'Commission',w:110,disabled:true},
     {k:'advance',l:'Advance',w:90,numeric:true},{k:'extraAdvance',l:'Extra Adv',w:90,numeric:true},
     {k:'monthlyRecovery',l:'Loan EMI',w:90,numeric:true},{k:'totalOutstanding',l:'Outstanding',w:100,numeric:true},
-    {k:'totalSavings',l:'Tot Savings',w:100,numeric:true},
+    {k:'totalSavings',l:'Tot Savings',w:100,numeric:true,disabled:true},
     {k:'daysPresent',l:'Days Present',w:100,numeric:true},
     {k:'daysAbsent',l:'Days Absent',w:100,numeric:true},
   ];
@@ -85,7 +85,8 @@ export default function SheetPage({
       const sAtt=(allAtt[curMonth]||{})[s.id]||{};
       const commEarned=getStaffCommission(s.id);
       const sal=calcSalary({...s, _commEarned:commEarned},sAtt,curMonth,weeklyOff,holidays);
-      return{'ID':s.id,'Name':s.name,'Designation':s.designation,'Branch':s.branch,'Aadhar':s.aadhar,'Phone':s.phone,'Alt Phone':s.altPhone,'DOB':s.dob,'Salary':s.salary,'Fixed Cutting':s.fixedCutting,'Commission':sal.commEarned||0,'Advance':s.advance,'Extra Advance':s.extraAdvance,'Monthly Recovery':s.monthlyRecovery,'Outstanding':s.totalOutstanding,'Total Savings':s.totalSavings,'Days Present':sal.daysPresent,'PL':sal.daysPL,'UL':sal.daysUL,'Absent':sal.daysAbsent,'Paid Days':sal.paidDays,'Till-date Salary':sal.tillDateSalary,'Net Payable':sal.netPayable};
+      const totSavings = getSavings ? getSavings(s.id).total : (s.totalSavings||0);
+      return{'ID':s.id,'Name':s.name,'Designation':s.designation,'Branch':s.branch,'Aadhar':s.aadhar,'Phone':s.phone,'Alt Phone':s.altPhone,'DOB':s.dob,'Salary':s.salary,'Fixed Cutting':s.fixedCutting,'Commission':sal.commEarned||0,'Advance':s.advance,'Extra Advance':s.extraAdvance,'Monthly Recovery':s.monthlyRecovery,'Outstanding':s.totalOutstanding,'Total Savings':totSavings,'Days Present':sal.daysPresent,'PL':sal.daysPL,'UL':sal.daysUL,'Absent':sal.daysAbsent,'Paid Days':sal.paidDays,'Till-date Salary':sal.tillDateSalary,'Net Payable':sal.netPayable};
     });
     XLSX.utils.book_append_sheet(wb,XLSX.utils.json_to_sheet(staffRows),'Staff');
     const attRows=staff.map(s=>{
@@ -110,6 +111,7 @@ export default function SheetPage({
           <button className="btn btn-sm btn-icon" onClick={undo} disabled={!canUndo} title="Undo"><i className="ti ti-arrow-back-up"/></button>
           <button className="btn btn-sm btn-icon" onClick={redo} disabled={!canRedo} title="Redo"><i className="ti ti-arrow-forward-up"/></button>
         </div>
+        <button className="btn btn-sm" onClick={triggerImport}><i className="ti ti-file-import"/> Import</button>
         <button className="btn btn-sm btn-primary" onClick={downloadExcel}><i className="ti ti-download"/> Download Excel</button>
       </SectionHeader>
 
@@ -127,7 +129,10 @@ export default function SheetPage({
                 const sal=calcSalary({...s, _commEarned:commEarned},sAtt,curMonth,weeklyOff,holidays);
                 return (
                   <tr key={s.id}>
-                    {STAFF_COLS.map(c=><td key={c.k} style={{padding:0}}><EditCell value={s[c.k]} numeric={c.numeric} disabled={c.disabled} options={c.options} onChange={v=>editStaffCell(idx,c.k,v)}/></td>)}
+                    {STAFF_COLS.map(c=>{
+                      const cellValue = c.k === 'totalSavings' && getSavings ? getSavings(s.id).total : s[c.k];
+                      return <td key={c.k} style={{padding:0}}><EditCell value={cellValue} numeric={c.numeric} disabled={c.disabled} options={c.options} onChange={v=>editStaffCell(idx,c.k,v)}/></td>;
+                    })}
                     <td style={{padding:'8px 12px',color:'var(--g800)',fontWeight:600}}>{inr(sal.tillDateSalary)}</td>
                     <td style={{padding:'8px 12px',fontWeight:700,color:sal.netPayable<0?'var(--r600)':'var(--t1)'}}>{inr(sal.netPayable)}</td>
                   </tr>

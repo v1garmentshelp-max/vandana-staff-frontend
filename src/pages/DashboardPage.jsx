@@ -1,11 +1,9 @@
-import { useState, useRef } from 'react';
-import * as XLSX from 'xlsx';
+import { useState } from 'react';
 import { StatCard, SectionHeader, ConfirmModal, EmptyState } from '../components/UI.jsx';
 import StaffModal         from '../components/StaffModal.jsx';
 import AttModal           from '../components/AttModal.jsx';
 import LoanModal          from '../components/LoanModal.jsx';
-import ImportPreviewModal from '../components/ImportPreviewModal.jsx';
-import { calcSalary, todayStr, monthKey, inr, formatMonth, normKey, clone } from '../utils/helpers.js';
+import { calcSalary, todayStr, monthKey, inr, formatMonth, clone } from '../utils/helpers.js';
 import { ATT_STATUSES, ATT_LABELS, BRANCHES } from '../utils/constants.js';
 
 const ATT_BG  = { P:'#d4edda', PL:'var(--b100)', UL:'var(--a100)', A:'var(--r100)' };
@@ -139,6 +137,7 @@ export default function DashboardPage({
   getCommission,
   undo, redo, canUndo, canRedo,
   pushHistoryDirect, snapshot, bulkSetStaff, importStaff, showToast,
+  triggerImport,
 }) {
   const [search,       setSearch]       = useState('');
   const [addModal,     setAddModal]     = useState(false);
@@ -146,14 +145,12 @@ export default function DashboardPage({
   const [attStaff,     setAttStaff]     = useState(null);
   const [loanStaff,    setLoanStaff]    = useState(null);
   const [confirmDel,   setConfirmDel]   = useState(null);
-  const [importChanges,setImportChanges]= useState(null);
   const [filterAdv,    setFilterAdv]    = useState(false);
   const [filterLoan,   setFilterLoan]   = useState(false);
   const [filterDesig,  setFilterDesig]  = useState('ALL');
   const [colFilters,   setColFilters]   = useState({});
   const [sortCol,      setSortCol]      = useState(null);
   const [sortDir,      setSortDir]      = useState('asc');
-  const importRef = useRef();
 
   const todaySt    = todayStr();
   const isCurMonth = monthKey(todaySt) === curMonth;
@@ -203,143 +200,7 @@ export default function DashboardPage({
   const withAdvance  = branchStaff.filter(s=>Number(s.advance)>0).length;
   const withLoan     = branchStaff.filter(s=>getLoan(s.id).remaining>0).length;
 
-  // ── Excel import ────────────────────────────────────────────────────────────
-  function handleImportFile(e) {
-    const file = e.target.files[0]; if (!file) return;
-    const reader = new FileReader();
-    reader.onload = evt => {
-      try {
-        const wb   = XLSX.read(evt.target.result, { type:'binary' });
-        const ws   = wb.Sheets[wb.SheetNames[0]];
-        const rows = XLSX.utils.sheet_to_json(ws, { defval:'' });
-        const MERGE = ['advance','extraAdvance','totalSavings'];
-        const NUM   = ['salary','fixedCutting','advance','extraAdvance','monthlyRecovery','totalOutstanding','totalSavings','daysPresent','daysAbsent'];
-        const FIELD_MAP = {
-          'id':['id','empid','employeeid'],
-          'name':['name','fullname','staffname','employeename'],
-          'designation':['designation','role','position'],
-          'branch':['branch','branchname'],
-          'aadhar':['aadhar','aadharnumber','aadharno'],
-          'phone':['phone','phoneno','mobile','mobileno'],
-          'altPhone':['alternatemobileno','altmobile','altphone','phone2'],
-          'dob':['dob','dateofbirth','birthdate'],
-          'salary':['salary','monthlysalary','ctc'],
-          'fixedCutting':['fixedcutting','fixedcut','savings','savingspermonth'],
-          'advance':['advance','advancetaken'],
-          'extraAdvance':['extraadvance','loan','loanamount'],
-          'monthlyRecovery':['monthlyrecovery','loanrecovery','emiamount'],
-          'totalOutstanding':['totaloutstanding','remainingloan','loanbalance'],
-          'totalSavings':['totalsavings','accumulatedsavings'],
-          'daysPresent':['dayspresent','presentdays','noofdayspresent','present','dayspresentcount'],
-          'daysAbsent':['daysabsent','absentdays','noofdaysabsent','absent','daysabsentcount'],
-        };
-        const changes = [];
-        const excelIds = new Set();
-        const excelNames = new Set();
-
-        rows.forEach(row => {
-          const r = {};
-          Object.keys(row).forEach(k => { r[normKey(k)] = row[k]; });
-          const mapped = {};
-          Object.entries(FIELD_MAP).forEach(([ourKey, aliases]) => {
-            for (const alias of aliases) {
-              const v = r[alias];
-              if (v !== undefined && v !== '') {
-                let strVal = String(v).trim();
-                if (ourKey === 'dob') {
-                  if (!isNaN(Number(v)) && Number(v) > 10000) {
-                    const dateObj = new Date((Number(v) - 25569) * 86400 * 1000);
-                    if (!isNaN(dateObj.getTime())) {
-                      strVal = dateObj.toISOString().slice(0, 10);
-                    }
-                  } else {
-                    const parts = strVal.split(/[\/\-]/);
-                    if (parts.length === 3) {
-                      if (parts[2].length === 4) {
-                        strVal = `${parts[2]}-${parts[1].padStart(2, '0')}-${parts[0].padStart(2, '0')}`;
-                      } else if (parts[0].length === 4) {
-                        strVal = `${parts[0]}-${parts[1].padStart(2, '0')}-${parts[2].padStart(2, '0')}`;
-                      }
-                    }
-                  }
-                }
-                mapped[ourKey] = strVal;
-                return;
-              }
-            }
-          });
-          NUM.forEach(k => { if (mapped[k] !== undefined) mapped[k] = Number(mapped[k]) || 0; });
-          const rowId   = String(mapped.id||'').trim();
-          const rowName = String(mapped.name||'').trim().toUpperCase();
-          if (!rowId && !rowName) return;
-
-          if (rowId) excelIds.add(rowId);
-          if (rowName) excelNames.add(rowName);
-
-          const exist = staff.find(s =>
-            (rowId   && String(s.id) === rowId) ||
-            (rowName && s.name.toUpperCase() === rowName)
-          );
-
-          if (exist) {
-            const diffs = [];
-            Object.entries(mapped).forEach(([k, newV]) => {
-              if (k==='id'||k==='name') return;
-              let finalV = newV;
-              if (MERGE.includes(k)) finalV = (Number(exist[k])||0) + (Number(newV)||0);
-              
-              let isDiff = false;
-              if (NUM.includes(k)) {
-                const oldNum = Number(exist[k]) || 0;
-                const newNum = Number(finalV) || 0;
-                if (oldNum !== newNum) isDiff = true;
-              } else {
-                const oldStr = String(exist[k] || '').trim();
-                const newStr = String(finalV || '').trim();
-                if (oldStr !== newStr) isDiff = true;
-              }
-
-              if (isDiff) {
-                diffs.push({ field:k, old:exist[k], new:finalV, importedVal:newV });
-              }
-            });
-            if (diffs.length) changes.push({ type:'update', id:exist.id, name:exist.name, diffs, mapped });
-          } else if (rowName) {
-            const genId = `VM${Date.now()}${Math.floor(Math.random()*1000)}`;
-            changes.push({ type:'add', id:rowId||genId, name:rowName, diffs:[], mapped });
-          }
-        });
-
-        // Find removed staff (exist in dashboard/db but not in imported Excel sheet)
-        staff.forEach(s => {
-          const sName = s.name.toUpperCase();
-          const sId = String(s.id);
-          const inExcel = excelIds.has(sId) || excelNames.has(sName);
-          if (!inExcel) {
-            changes.push({ type:'delete', id:s.id, name:s.name, diffs:[], mapped:{} });
-          }
-        });
-
-        if (!changes.length) { showToast('No changes detected','info'); return; }
-        setImportChanges(changes);
-      } catch(err) { showToast('Import failed: '+err.message,'error'); }
-    };
-    reader.readAsBinaryString(file);
-    e.target.value = '';
-  }
-
-  async function applyImport(finalChanges) {
-    const toApply = finalChanges || importChanges;
-    try {
-      await importStaff(toApply);
-      setImportChanges(null);
-      const upd = toApply.filter(c=>c.type==='update').length;
-      const add = toApply.filter(c=>c.type==='add').length;
-      showToast(`Import applied — ${upd} updated, ${add} added`);
-    } catch(err) {
-      showToast('Import failed to save to database: ' + err.message, 'error');
-    }
-  }
+  // Excel import handled globally via triggerImport
 
   async function handleMarkAll() {
     try {
@@ -454,8 +315,7 @@ export default function DashboardPage({
         <button className="btn btn-sm" onClick={()=>setAddModal(true)}>
           <i className="ti ti-user-plus"/> Add Staff
         </button>
-        <input ref={importRef} type="file" accept=".xlsx,.xls,.csv" style={{ display:'none' }} onChange={handleImportFile}/>
-        <button className="btn btn-sm" onClick={()=>importRef.current?.click()}>
+        <button className="btn btn-sm" onClick={triggerImport}>
           <i className="ti ti-file-import"/> Import
         </button>
         <div style={{ display:'flex',gap:3 }}>
@@ -668,11 +528,6 @@ export default function DashboardPage({
             }
           }}
           onCancel={()=>setConfirmDel(null)}/>
-      )}
-      {importChanges && (
-        <ImportPreviewModal changes={importChanges}
-          onConfirm={final=>applyImport(final)}
-          onCancel={()=>setImportChanges(null)}/>
       )}
     </div>
   );

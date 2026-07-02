@@ -1,13 +1,15 @@
-import { useState, useEffect, useCallback } from 'react';
-import { lsGet, lsSet } from './utils/helpers.js';
+import { useState, useEffect, useCallback, useRef } from 'react';
+import * as XLSX from 'xlsx';
+import { lsGet, lsSet, todayStr, monthKey, normKey, formatMonth } from './utils/helpers.js';
 import { useAppState }    from './hooks/useAppState.js';
-import { Toast }          from './components/UI.jsx';
+import { Toast, Modal }          from './components/UI.jsx';
 import LoginPage          from './pages/LoginPage.jsx';
 import DashboardPage      from './pages/DashboardPage.jsx';
 import SheetPage          from './pages/SheetPage.jsx';
 import CommissionPage     from './pages/CommissionPage.jsx';
 import SettingsPage       from './pages/SettingsPage.jsx';
 import AuditPage          from './pages/AuditPage.jsx';
+import ImportPreviewModal from './components/ImportPreviewModal.jsx';
 
 const NAV = [
   ['dashboard', 'ti-layout-dashboard', 'Dashboard'],
@@ -44,6 +46,157 @@ export default function App() {
   const showToast = useCallback((message, type='success') => setToast({ message, type }), []);
 
   const A = useAppState(showToast);
+
+  const [importChanges, setImportChanges] = useState(null);
+  const [importMonthModal, setImportMonthModal] = useState(false);
+  const [selectedImportMonth, setSelectedImportMonth] = useState(A.curMonth);
+  const importRef = useRef();
+
+  useEffect(() => {
+    setSelectedImportMonth(A.curMonth);
+  }, [A.curMonth]);
+
+  function handleImportFile(e) {
+    const file = e.target.files[0]; if (!file) return;
+    const reader = new FileReader();
+    reader.onload = evt => {
+      try {
+        const wb   = XLSX.read(evt.target.result, { type:'binary' });
+        const ws   = wb.Sheets[wb.SheetNames[0]];
+        const rows = XLSX.utils.sheet_to_json(ws, { defval:'' });
+        const MERGE = ['advance','extraAdvance','totalSavings'];
+        const NUM   = ['salary','fixedCutting','advance','extraAdvance','monthlyRecovery','totalOutstanding','totalSavings','daysPresent','daysAbsent'];
+        const FIELD_MAP = {
+          'id':['id','empid','employeeid'],
+          'name':['name','fullname','staffname','employeename'],
+          'designation':['designation','role','position'],
+          'branch':['branch','branchname'],
+          'aadhar':['aadhar','aadharnumber','aadharno'],
+          'phone':['phone','phoneno','mobile','mobileno'],
+          'altPhone':['alternatemobileno','altmobile','altphone','phone2'],
+          'dob':['dob','dateofbirth','birthdate'],
+          'salary':['salary','monthlysalary','ctc'],
+          'fixedCutting':['fixedcutting','fixedcut','savings','savingspermonth'],
+          'advance':['advance','advancetaken'],
+          'extraAdvance':['extraadvance','loan','loanamount'],
+          'monthlyRecovery':['monthlyrecovery','loanrecovery','emiamount'],
+          'totalOutstanding':['totaloutstanding','remainingloan','loanbalance'],
+          'totalSavings':['totalsavings','accumulatedsavings'],
+          'daysPresent':['dayspresent','presentdays','noofdayspresent','present','dayspresentcount'],
+          'daysAbsent':['daysabsent','absentdays','noofdaysabsent','absent','daysabsentcount'],
+        };
+        const changes = [];
+        const excelIds = new Set();
+        const excelNames = new Set();
+
+        rows.forEach(row => {
+          const r = {};
+          Object.keys(row).forEach(k => { r[normKey(k)] = row[k]; });
+          const mapped = {};
+          Object.entries(FIELD_MAP).forEach(([ourKey, aliases]) => {
+            for (const alias of aliases) {
+              const v = r[alias];
+              if (v !== undefined && v !== '') {
+                let strVal = String(v).trim();
+                if (ourKey === 'dob') {
+                  if (!isNaN(Number(v)) && Number(v) > 10000) {
+                    const dateObj = new Date((Number(v) - 25569) * 86400 * 1000);
+                    if (!isNaN(dateObj.getTime())) {
+                      strVal = dateObj.toISOString().slice(0, 10);
+                    }
+                  } else {
+                    const parts = strVal.split(/[\/\-]/);
+                    if (parts.length === 3) {
+                      if (parts[2].length === 4) {
+                        strVal = `${parts[2]}-${parts[1].padStart(2, '0')}-${parts[0].padStart(2, '0')}`;
+                      } else if (parts[0].length === 4) {
+                        strVal = `${parts[0]}-${parts[1].padStart(2, '0')}-${parts[2].padStart(2, '0')}`;
+                      }
+                    }
+                  }
+                }
+                mapped[ourKey] = strVal;
+                return;
+              }
+            }
+          });
+          NUM.forEach(k => { if (mapped[k] !== undefined) mapped[k] = Number(mapped[k]) || 0; });
+          const rowId   = String(mapped.id||'').trim();
+          const rowName = String(mapped.name||'').trim().toUpperCase();
+          if (!rowId && !rowName) return;
+
+          if (rowId) excelIds.add(rowId);
+          if (rowName) excelNames.add(rowName);
+
+          const exist = A.staff.find(s =>
+            (rowId   && String(s.id) === rowId) ||
+            (rowName && s.name.toUpperCase() === rowName)
+          );
+
+          if (exist) {
+            const diffs = [];
+            Object.entries(mapped).forEach(([k, newV]) => {
+              if (k==='id'||k==='name') return;
+              let finalV = newV;
+              if (MERGE.includes(k)) finalV = (Number(exist[k])||0) + (Number(newV)||0);
+              
+              let isDiff = false;
+              if (NUM.includes(k)) {
+                const oldNum = Number(exist[k]) || 0;
+                const newNum = Number(finalV) || 0;
+                if (oldNum !== newNum) isDiff = true;
+              } else {
+                const oldStr = String(exist[k] || '').trim();
+                const newStr = String(finalV || '').trim();
+                if (oldStr !== newStr) isDiff = true;
+              }
+
+              if (isDiff) {
+                diffs.push({ field:k, old:exist[k], new:finalV, importedVal:newV });
+              }
+            });
+            if (diffs.length) changes.push({ type:'update', id:exist.id, name:exist.name, diffs, mapped });
+          } else if (rowName) {
+            const genId = `VM${Date.now()}${Math.floor(Math.random()*1000)}`;
+            changes.push({ type:'add', id:rowId||genId, name:rowName, diffs:[], mapped });
+          }
+        });
+
+        // Find removed staff
+        A.staff.forEach(s => {
+          const sName = s.name.toUpperCase();
+          const sId = String(s.id);
+          const inExcel = excelIds.has(sId) || excelNames.has(sName);
+          if (!inExcel) {
+            changes.push({ type:'delete', id:s.id, name:s.name, diffs:[], mapped:{} });
+          }
+        });
+
+        if (!changes.length) { showToast('No changes detected','info'); return; }
+        setImportChanges(changes);
+      } catch(err) { showToast('Import failed: '+err.message,'error'); }
+    };
+    reader.readAsBinaryString(file);
+    e.target.value = '';
+  }
+
+  async function applyImport(finalChanges) {
+    const toApply = finalChanges || importChanges;
+    try {
+      await A.importStaff(toApply);
+      setImportChanges(null);
+      const upd = toApply.filter(c=>c.type==='update').length;
+      const add = toApply.filter(c=>c.type==='add').length;
+      showToast(`Import applied — ${upd} updated, ${add} added`);
+    } catch(err) {
+      showToast('Import failed to save to database: ' + err.message, 'error');
+    }
+  }
+
+  const triggerImport = useCallback(() => {
+    setSelectedImportMonth(A.curMonth);
+    setImportMonthModal(true);
+  }, [A.curMonth]);
 
   // Global keyboard shortcuts
   useEffect(() => {
@@ -146,6 +299,7 @@ export default function App() {
             pushHistoryDirect={A.pushHistoryDirect} snapshot={A.snapshot}
             bulkSetStaff={A.bulkSetStaff} importStaff={A.importStaff}
             showToast={showToast}
+            triggerImport={triggerImport}
           />
         )}
         {page==='sheet' && (
@@ -155,9 +309,11 @@ export default function App() {
             weeklyOff={A.weeklyOff} holidays={A.holidays}
             curMonth={A.curMonth} setCurMonth={A.setCurMonth} allMonths={A.allMonths}
             getCommission={A.getCommission}
+            getSavings={A.getSavings}
             pushHistoryDirect={A.pushHistoryDirect} snapshot={A.snapshot}
             undo={A.undo} redo={A.redo} canUndo={A.canUndo} canRedo={A.canRedo}
             showToast={showToast}
+            triggerImport={triggerImport}
           />
         )}
         {page==='commission' && (
@@ -180,6 +336,40 @@ export default function App() {
           />
         )}
       </main>
+
+      <input ref={importRef} type="file" accept=".xlsx,.xls,.csv" style={{ display:'none' }} onChange={handleImportFile}/>
+
+      {importChanges && (
+        <ImportPreviewModal changes={importChanges}
+          onConfirm={final=>applyImport(final)}
+          onCancel={()=>setImportChanges(null)}/>
+      )}
+
+      {importMonthModal && (
+        <Modal title="Select Target Month for Import" onClose={()=>setImportMonthModal(false)} width={400}>
+          <div style={{ display:'flex', flexDirection:'column', gap:15, padding:'10px 0' }}>
+            <p style={{ fontSize:13, color:'var(--t2)' }}>
+              Choose the month to apply the imported data. The salary rules (30/31-day plans) will adjust automatically.
+            </p>
+            <div style={{ display:'flex', flexDirection:'column', gap:5 }}>
+              <label style={{ fontSize:11, fontWeight:600, color:'var(--t3)' }}>Target Month</label>
+              <select value={selectedImportMonth} onChange={e=>setSelectedImportMonth(e.target.value)} style={{ width:'100%' }}>
+                {A.allMonths.map(m=><option key={m} value={m}>{formatMonth(m)}</option>)}
+              </select>
+            </div>
+            <div style={{ display:'flex', justifyContent:'end', gap:8, marginTop:10 }}>
+              <button className="btn btn-sm" onClick={()=>setImportMonthModal(false)}>Cancel</button>
+              <button className="btn btn-sm btn-primary" onClick={()=>{
+                A.setCurMonth(selectedImportMonth);
+                setImportMonthModal(false);
+                setTimeout(()=>importRef.current?.click(), 100);
+              }}>
+                Proceed to Upload
+              </button>
+            </div>
+          </div>
+        </Modal>
+      )}
 
       {toast && <Toast message={toast.message} type={toast.type} onDone={()=>setToast(null)}/>}
     </div>
