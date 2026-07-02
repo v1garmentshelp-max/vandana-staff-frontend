@@ -17,17 +17,17 @@ function fmt(field, val) {
 }
 
 export default function ImportPreviewModal({ changes, onConfirm, onCancel }) {
-  // checked: { "staffId|field": true/false }
+  // checked: { "staffId-index|field": true/false }
   const initChecked = {};
-  // mergeMode: { "staffId|field": "merge"|"replace" }
+  // mergeMode: { "staffId-index|field": "merge"|"replace" }
   const initMerge = {};
 
-  changes.forEach(c => {
+  changes.forEach((c, idx) => {
     if (c.type === 'add') {
-      initChecked[`${c.id}|__add__`] = true;
+      initChecked[`${c.id}-${idx}|__add__`] = true;
     } else {
       (c.diffs || []).forEach(d => {
-        const key = `${c.id}|${d.field}`;
+        const key = `${c.id}-${idx}|${d.field}`;
         initChecked[key] = true;
         if (MERGE_ELIGIBLE.includes(d.field)) initMerge[key] = 'merge';
       });
@@ -43,12 +43,13 @@ export default function ImportPreviewModal({ changes, onConfirm, onCancel }) {
   function toggleMerge(key) {
     setMergeMode(p => ({ ...p, [key]: p[key] === 'merge' ? 'replace' : 'merge' }));
   }
-  function toggleAll(c) {
+  function toggleAll(c, idx) {
     const newChecked = { ...checked };
     if (c.type === 'add') {
-      newChecked[`${c.id}|__add__`] = !checked[`${c.id}|__add__`];
+      const addKey = `${c.id}-${idx}|__add__`;
+      newChecked[addKey] = !checked[addKey];
     } else {
-      const keys = (c.diffs||[]).map(d => `${c.id}|${d.field}`);
+      const keys = (c.diffs||[]).map(d => `${c.id}-${idx}|${d.field}`);
       const allOn = keys.every(k => checked[k]);
       keys.forEach(k => { newChecked[k] = !allOn; });
     }
@@ -56,9 +57,9 @@ export default function ImportPreviewModal({ changes, onConfirm, onCancel }) {
   }
 
   // Count selected
-  const selectedCount = changes.reduce((acc, c) => {
-    if (c.type === 'add') return acc + (checked[`${c.id}|__add__`] ? 1 : 0);
-    return acc + (c.diffs||[]).filter(d => checked[`${c.id}|${d.field}`]).length;
+  const selectedCount = changes.reduce((acc, c, idx) => {
+    if (c.type === 'add') return acc + (checked[`${c.id}-${idx}|__add__`] ? 1 : 0);
+    return acc + (c.diffs||[]).filter(d => checked[`${c.id}-${idx}|${d.field}`]).length;
   }, 0);
 
   const updated = changes.filter(c => c.type === 'update');
@@ -66,14 +67,14 @@ export default function ImportPreviewModal({ changes, onConfirm, onCancel }) {
 
   // Build final changes to pass up
   function buildFinal() {
-    return changes.map(c => {
+    return changes.map((c, idx) => {
       if (c.type === 'add') {
-        return checked[`${c.id}|__add__`] ? c : null;
+        return checked[`${c.id}-${idx}|__add__`] ? c : null;
       }
       const filteredDiffs = (c.diffs||[])
-        .filter(d => checked[`${c.id}|${d.field}`])
+        .filter(d => checked[`${c.id}-${idx}|${d.field}`])
         .map(d => {
-          const key = `${c.id}|${d.field}`;
+          const key = `${c.id}-${idx}|${d.field}`;
           const mode = mergeMode[key] || 'replace';
           const finalVal = (MERGE_ELIGIBLE.includes(d.field) && mode === 'merge')
             ? (Number(d.old)||0) + (Number(d.importedVal)||0)
@@ -120,20 +121,20 @@ export default function ImportPreviewModal({ changes, onConfirm, onCancel }) {
       <div style={{ maxHeight:420, overflowY:'auto', display:'flex', flexDirection:'column', gap:10 }}>
         {changes.map((c, i) => {
           const isAdd = c.type === 'add';
-          const addKey = `${c.id}|__add__`;
-          const allFieldKeys = isAdd ? [addKey] : (c.diffs||[]).map(d=>`${c.id}|${d.field}`);
+          const addKey = `${c.id}-${i}|__add__`;
+          const allFieldKeys = isAdd ? [addKey] : (c.diffs||[]).map(d=>`${c.id}-${i}|${d.field}`);
           const allChecked = allFieldKeys.every(k => checked[k]);
           const someChecked = allFieldKeys.some(k => checked[k]);
 
           return (
-            <div key={i} style={{ border:'1px solid var(--border)', borderRadius:10, overflow:'hidden' }}>
+            <div key={`${c.id}-${c.type}-${i}`} style={{ border:'1px solid var(--border)', borderRadius:10, overflow:'hidden' }}>
               {/* Card header */}
               <div style={{ padding:'9px 14px', background:isAdd?'#d4edda':'var(--s2)', display:'flex', alignItems:'center', gap:8 }}>
                 {/* Select-all checkbox for this employee */}
                 <input type="checkbox"
                   checked={allChecked}
                   ref={el => { if(el) el.indeterminate = !allChecked && someChecked; }}
-                  onChange={() => toggleAll(c)}
+                  onChange={() => toggleAll(c, i)}
                   style={{ width:14, height:14, cursor:'pointer', accentColor:'var(--g800)', flexShrink:0 }}
                 />
                 <i className={`ti ${isAdd?'ti-user-plus':'ti-edit'}`} style={{ fontSize:13, color:isAdd?'#1a6b35':'var(--b600)' }}/>
@@ -148,7 +149,7 @@ export default function ImportPreviewModal({ changes, onConfirm, onCancel }) {
               {!isAdd && c.diffs && c.diffs.length > 0 && (
                 <div style={{ padding:'4px 14px' }}>
                   {c.diffs.map((d, j) => {
-                    const key       = `${c.id}|${d.field}`;
+                    const key       = `${c.id}-${i}|${d.field}`;
                     const isOn      = checked[key];
                     const isMerge   = MERGE_ELIGIBLE.includes(d.field);
                     const mode      = mergeMode[key] || 'replace';
