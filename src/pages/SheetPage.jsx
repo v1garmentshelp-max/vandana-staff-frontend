@@ -104,8 +104,10 @@ export default function SheetPage({
       const saved = getSavings(s.id);
       const isConf = saved.confirmed.includes(curMonth);
       const sal=calcSalary({...s, _commEarned:commEarned, _savingsConfirmed:isConf},sAtt,curMonth,weeklyOff,holidays);
+      const loan = getLoan(s.id);
+      const loanTotal = loan.total > 0 ? loan.total : Number(s.extraAdvance || 0);
       const loanRemaining = Math.max(0, Number(s.extraAdvance || 0) - Number(s.monthlyRecovery || 0));
-      return{'ID':s.id,'Name':s.name,'Designation':s.designation,'Branch':s.branch,'Salary':s.salary,'Fixed Cutting':s.fixedCutting,'Advance':s.advance,'Extra Advance':s.extraAdvance,'Monthly Recovery':s.monthlyRecovery,'Outstanding':loanRemaining,'Total Savings':s.totalSavings,'Days Present':sal.daysPresent,'Absent':sal.daysAbsent,'Net Payable':sal.netPayable};
+      return{'ID':s.id,'Name':s.name,'Designation':s.designation,'Branch':s.branch,'Salary':s.salary,'Fixed Cutting':s.fixedCutting,'Advance':s.advance,'Extra Advance':loanTotal,'Monthly Recovery':s.monthlyRecovery,'Outstanding':loanRemaining,'Total Savings':s.totalSavings,'Days Present':sal.daysPresent,'Absent':sal.daysAbsent,'Net Payable':sal.netPayable};
     });
     XLSX.utils.book_append_sheet(wb,XLSX.utils.json_to_sheet(staffRows),'Staff');
     const attRows=staff.map(s=>{
