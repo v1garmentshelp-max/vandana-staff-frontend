@@ -185,11 +185,12 @@ export default function App() {
   async function applyImport(finalChanges) {
     const toApply = finalChanges || importChanges;
     try {
-      await A.importStaff(toApply);
+      await A.importStaff(toApply, selectedImportMonth);
       setImportChanges(null);
       const upd = toApply.filter(c=>c.type==='update').length;
       const add = toApply.filter(c=>c.type==='add').length;
-      showToast(`Import applied — ${upd} updated, ${add} added`);
+      const del = toApply.filter(c=>c.type==='delete').length;
+      showToast(`Import applied — ${upd} updated, ${add} added, ${del} removed`);
     } catch(err) {
       showToast('Import failed to save to database: ' + err.message, 'error');
     }

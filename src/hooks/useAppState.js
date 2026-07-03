@@ -440,10 +440,10 @@ export function useAppState(showToast) {
     } catch(e) { console.error('silentReload failed:', e.message); }
   }
 
-  async function importStaff(changes) {
+  async function importStaff(changes, month) {
     const s = snap(); pushH(s);
     try {
-      const res = await api.bulkImport(changes);
+      const res = await api.bulkImport(changes, month);
       await silentReload();
       return res;
     } catch(e) {

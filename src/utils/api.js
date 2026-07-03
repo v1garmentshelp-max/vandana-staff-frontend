@@ -28,7 +28,7 @@ export const api = {
   addStaff:         (data)        => post('/api/staff', data),
   updateStaff:      (id, data)    => put(`/api/staff/${id}`, data),
   deleteStaff:      (id)          => del(`/api/staff/${id}`),
-  bulkImport:       (changes)     => post('/api/staff/bulk', { changes }),
+  bulkImport:       (changes, month) => post('/api/staff/bulk', { changes, month }),
 
   // Attendance
   getAttendance:    (month)       => get(`/api/attendance/${month}`),

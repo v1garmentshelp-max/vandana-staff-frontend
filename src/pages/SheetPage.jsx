@@ -75,7 +75,11 @@ export default function SheetPage({
   async function editStaffCell(idx,key,val){
     const member = staff[idx];
     try {
-      await updateStaff(member.id, { [key]: val });
+      const updates = { [key]: val };
+      if (key === 'daysPresent' || key === 'daysAbsent') {
+        updates.importMonth = curMonth;
+      }
+      await updateStaff(member.id, updates);
       showToast('Staff updated');
     } catch(err) {
       showToast('Failed to update: ' + err.message, 'error');
