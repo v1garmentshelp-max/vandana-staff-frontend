@@ -81,7 +81,7 @@ export default function App() {
           'fixedCutting':['fixedcutting','fixedcut','savings','savingspermonth'],
           'advance':['advance','advancetaken','advanceamount'],
           'extraAdvance':['extraadvance','loan','loanamount','extraadvanceamount','loanoutstanding','totalloan'],
-          'monthlyRecovery':['monthlyrecovery','loanrecovery','emiamount','loanemi','emi','monthlyrecoveryamount','loanrecoveryamount','loanrecoveryemi'],
+          'monthlyRecovery':['monthlyrecovery','monthyrecovery','loanrecovery','emiamount','loanemi','emi','monthlyrecoveryamount','monthyrecoveryamount','loanrecoveryamount','loanrecoveryemi','monthyrecoveryemi'],
           'totalOutstanding':['totaloutstanding','remainingloan','loanbalance','outstanding','totaloutstandingamount','outstandingamount'],
           'totalSavings':['totalsavings','totalsaving','accumulatedsavings','totalsavingsamount'],
           'daysPresent':['dayspresent','presentdays','noofdayspresent','present','dayspresentcount'],
