@@ -29,7 +29,7 @@ export function calcSalary(emp, sAtt={}, ym, weeklyOff, holidays, upTo=todayStr(
   let daysPresent=0, daysPL=0, daysUL=0, daysAbsent=0, daysHoliday=0;
 
   const hasCalendarAtt = sAtt && Object.keys(sAtt).length > 0;
-  const hasImportedDays = !hasCalendarAtt && emp.importMonth === ym && (
+  const hasImportedDays = !hasCalendarAtt && (!emp.importMonth || emp.importMonth === ym) && (
     (emp.daysPresent !== undefined && emp.daysPresent !== null && emp.daysPresent !== '') ||
     (emp.daysAbsent !== undefined && emp.daysAbsent !== null && emp.daysAbsent !== '')
   );
