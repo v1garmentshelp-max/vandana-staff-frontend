@@ -98,7 +98,7 @@ export default function App() {
           Object.entries(FIELD_MAP).forEach(([ourKey, aliases]) => {
             for (const alias of aliases) {
               const v = r[alias];
-              if (v !== undefined && v !== '') {
+              if (v !== undefined) {
                 let strVal = String(v).trim();
                 if (ourKey === 'dob') {
                   if (!isNaN(Number(v)) && Number(v) > 10000) {
