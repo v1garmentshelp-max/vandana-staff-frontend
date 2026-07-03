@@ -15,9 +15,9 @@ function buildWhatsApp(s, sal, savings, loan, isConf, curMonth) {
   const ML = ['January','February','March','April','May','June','July','August','September','October','November','December'];
   const label = `${ML[Number(m)-1]} ${y}`;
   
-  const loanTotal = loan.total || Number(s.extraAdvance || 0);
-  const loanMonthly = loan.monthly || Number(s.monthlyRecovery || 0);
-  const loanRemaining = loan.remaining !== undefined && loan.remaining !== null && loan.total > 0 ? loan.remaining : Number(s.totalOutstanding || 0);
+  const loanTotal = Number(s.extraAdvance || 0);
+  const loanMonthly = Number(s.monthlyRecovery || 0);
+  const loanRemaining = Math.max(0, loanTotal - loanMonthly);
 
   return `Hi ${s.name},
 
@@ -92,7 +92,7 @@ function SortIcon({ colKey, sortCol, sortDir }) {
 }
 
 // ── Column headers with sort + filter row ─────────────────────────────────────
-function ColHeaders({ sortCol, sortDir, onSort, colFilters, setColFilters }) {
+function ColHeaders({ sortCol, sortDir, onSort, colFilters, setColFilters, allCheckedSavings, onToggleAllSavings }) {
   return (
     <>
       <tr>
@@ -112,7 +112,7 @@ function ColHeaders({ sortCol, sortDir, onSort, colFilters, setColFilters }) {
       </tr>
       <tr style={{ background:'#f8faf7' }}>
         {COLS.map(col => (
-          <th key={col.key} style={{ padding:'4px 6px', fontWeight:400 }}>
+          <th key={col.key} style={{ padding:'4px 6px', fontWeight:400, textAlign:'center' }}>
             {col.filterable
               ? <input
                   value={colFilters[col.key] || ''}
@@ -122,7 +122,15 @@ function ColHeaders({ sortCol, sortDir, onSort, colFilters, setColFilters }) {
                     border:'1px solid var(--border)', background:'var(--surface)',
                     fontFamily:'var(--font)', color:'var(--t1)' }}
                 />
-              : <div style={{ height:24 }}/>
+              : col.key === '__savConf__'
+                ? <input
+                    type="checkbox"
+                    checked={allCheckedSavings}
+                    onChange={e => onToggleAllSavings(e.target.checked)}
+                    style={{ width:16, height:16, cursor:'pointer', accentColor:'var(--g800)', marginTop:4 }}
+                    title={allCheckedSavings ? "Unconfirm all savings" : "Confirm all savings"}
+                  />
+                : <div style={{ height:24 }}/>
             }
           </th>
         ))}
@@ -137,13 +145,29 @@ export default function DashboardPage({
   curMonth, setCurMonth, curBranch, setCurBranch,
   allMonths,
   markAllPresent, markOne, addStaff, updateStaff, deleteStaff,
-  getSavings, confirmSavings, unconfirmSavings,
+  getSavings, confirmSavings, confirmAllSavings, unconfirmSavings, unconfirmAllSavings,
   getLoan, setLoan, addLoanPayment,
   getCommission,
   undo, redo, canUndo, canRedo,
   pushHistoryDirect, snapshot, bulkSetStaff, importStaff, showToast,
   triggerImport,
 }) {
+  async function handleConfirmAllSavings() {
+    try {
+      await confirmAllSavings(curMonth);
+      showToast('All savings confirmed');
+    } catch(err) {
+      showToast('Failed to confirm all savings: ' + err.message, 'error');
+    }
+  }
+  async function handleUnconfirmAllSavings() {
+    try {
+      await unconfirmAllSavings(curMonth);
+      showToast('All savings unconfirmed');
+    } catch(err) {
+      showToast('Failed to unconfirm all savings: ' + err.message, 'error');
+    }
+  }
   const [search,       setSearch]       = useState('');
   const [addModal,     setAddModal]     = useState(false);
   const [editStaff,    setEditStaff]    = useState(null);
@@ -346,6 +370,8 @@ export default function DashboardPage({
                 onSort={handleSort}
                 colFilters={colFilters}
                 setColFilters={setColFilters}
+                allCheckedSavings={filtered.length > 0 && filtered.every(s => getSavings(s.id).confirmed.includes(curMonth))}
+                onToggleAllSavings={checked => checked ? handleConfirmAllSavings() : handleUnconfirmAllSavings()}
               />
             </thead>
             <tbody>
@@ -408,14 +434,16 @@ export default function DashboardPage({
                     {/* Extra Advance (Loan) */}
                     <td>
                       <button onClick={()=>setLoanStaff(s)} className="btn btn-xs"
-                        style={{ color:loan.remaining>0?'var(--r600)':'var(--t3)',
-                          borderColor:loan.remaining>0?'var(--r100)':'var(--border)',
-                          background:loan.remaining>0?'var(--r50)':'var(--s2)' }}>
-                        {inr(loan.remaining||s.extraAdvance||0)}
+                        style={{ color:(loan.total > 0 ? loan.total : Number(s.extraAdvance || 0)) > 0 ? 'var(--r600)' : 'var(--t3)',
+                          borderColor:(loan.total > 0 ? loan.total : Number(s.extraAdvance || 0)) > 0 ? 'var(--r100)' : 'var(--border)',
+                          background:(loan.total > 0 ? loan.total : Number(s.extraAdvance || 0)) > 0 ? 'var(--r50)' : 'var(--s2)' }}>
+                        {inr(loan.total > 0 ? loan.total : Number(s.extraAdvance || 0))}
                       </button>
                     </td>
                     <td style={{ color:'var(--r600)',fontWeight:500 }}>{inr(s.monthlyRecovery)}</td>
-                    <td style={{ color:'var(--r600)' }}>{inr(loan.remaining||s.totalOutstanding||0)}</td>
+                    <td style={{ color:'var(--r600)' }}>
+                      {inr(Math.max(0, Number(s.extraAdvance || 0) - Number(s.monthlyRecovery || 0)))}
+                    </td>
                     {/* Savings confirm */}
                     <td>
                       <button

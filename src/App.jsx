@@ -295,7 +295,7 @@ export default function App() {
             curBranch={A.curBranch} setCurBranch={A.setCurBranch}
             markAllPresent={A.markAllPresent} markOne={A.markOne}
             addStaff={A.addStaff} updateStaff={A.updateStaff} deleteStaff={A.deleteStaff}
-            getSavings={A.getSavings} confirmSavings={A.confirmSavings} unconfirmSavings={A.unconfirmSavings}
+            getSavings={A.getSavings} confirmSavings={A.confirmSavings} confirmAllSavings={A.confirmAllSavings} unconfirmSavings={A.unconfirmSavings} unconfirmAllSavings={A.unconfirmAllSavings}
             getLoan={A.getLoan} setLoan={A.setLoan} addLoanPayment={A.addLoanPayment}
             getCommission={A.getCommission}
             undo={A.undo} redo={A.redo} canUndo={A.canUndo} canRedo={A.canRedo}

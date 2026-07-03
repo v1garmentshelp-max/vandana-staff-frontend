@@ -215,6 +215,85 @@ export function useAppState(showToast) {
     }
   }
 
+  async function confirmAllSavings(month) {
+    const s = snap(); pushH(s);
+    const toConfirm = staff.filter(emp => {
+      const r = allSavings[emp.id] || { confirmed: [] };
+      return !r.confirmed.includes(month);
+    });
+    if (!toConfirm.length) return;
+
+    setAllSavings(prev => {
+      const next = { ...prev };
+      toConfirm.forEach(emp => {
+        const r = next[emp.id] || { confirmed: [], total: 0 };
+        next[emp.id] = { confirmed: [...r.confirmed, month], total: r.total + Number(emp.fixedCutting || 0) };
+      });
+      return next;
+    });
+
+    setStaff(prev => prev.map(emp => {
+      const needsConf = toConfirm.some(x => x.id === emp.id);
+      if (needsConf) {
+        return { ...emp, totalSavings: (emp.totalSavings || 0) + Number(emp.fixedCutting || 0) };
+      }
+      return emp;
+    }));
+
+    try {
+      await Promise.all(toConfirm.map(emp =>
+        api.confirmSavings(emp.id, month, Number(emp.fixedCutting || 0))
+      ));
+      await Promise.all(toConfirm.map(emp =>
+        addAuditEntry('CONFIRM_SAVINGS', emp.id, 'savings', null, Number(emp.fixedCutting || 0))
+      ));
+    } catch(e) {
+      setAllSavings(s.allSavings);
+      setStaff(s.staff);
+      console.error('confirmAllSavings:', e.message);
+      if (showToast) showToast(`Failed to confirm all savings: ${e.message}`, 'error');
+      throw e;
+    }
+  }
+
+  async function unconfirmAllSavings(month) {
+    const s = snap(); pushH(s);
+    const toUnconfirm = staff.filter(emp => {
+      const r = allSavings[emp.id] || { confirmed: [] };
+      return r.confirmed.includes(month);
+    });
+    if (!toUnconfirm.length) return;
+
+    setAllSavings(prev => {
+      const next = { ...prev };
+      toUnconfirm.forEach(emp => {
+        const r = next[emp.id] || { confirmed: [], total: 0 };
+        next[emp.id] = { confirmed: r.confirmed.filter(m => m !== month), total: Math.max(0, r.total - Number(emp.fixedCutting || 0)) };
+      });
+      return next;
+    });
+
+    setStaff(prev => prev.map(emp => {
+      const needsUnconf = toUnconfirm.some(x => x.id === emp.id);
+      if (needsUnconf) {
+        return { ...emp, totalSavings: Math.max(0, (emp.totalSavings || 0) - Number(emp.fixedCutting || 0)) };
+      }
+      return emp;
+    }));
+
+    try {
+      await Promise.all(toUnconfirm.map(emp =>
+        api.unconfirmSavings(emp.id, month)
+      ));
+    } catch(e) {
+      setAllSavings(s.allSavings);
+      setStaff(s.staff);
+      console.error('unconfirmAllSavings:', e.message);
+      if (showToast) showToast(`Failed to unconfirm all savings: ${e.message}`, 'error');
+      throw e;
+    }
+  }
+
   async function unconfirmSavings(id, month) {
     const emp = staff.find(x => x.id === id); if (!emp) return;
     const amount = Number(emp.fixedCutting || 0);
@@ -397,7 +476,7 @@ export function useAppState(showToast) {
     undo, redo, snapshot, pushHistoryDirect,
     markAllPresent, markOne,
     addStaff, updateStaff, deleteStaff,
-    getSavings, confirmSavings, unconfirmSavings,
+    getSavings, confirmSavings, confirmAllSavings, unconfirmSavings, unconfirmAllSavings,
     getLoan, setLoan, addLoanPayment,
     addHoliday, removeHoliday,
     getCommission, setCommissionForMonth,
