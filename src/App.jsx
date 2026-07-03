@@ -66,7 +66,7 @@ export default function App() {
         const wb   = XLSX.read(evt.target.result, { type:'binary' });
         const ws   = wb.Sheets[wb.SheetNames[0]];
         const rows = XLSX.utils.sheet_to_json(ws, { defval:'' });
-        const MERGE = ['advance','extraAdvance','totalSavings'];
+        const MERGE = ['advance','extraAdvance'];
         const NUM   = ['salary','fixedCutting','advance','extraAdvance','monthlyRecovery','totalOutstanding','totalSavings','daysPresent','daysAbsent'];
         const FIELD_MAP = {
           'id':['id','empid','employeeid'],
@@ -78,12 +78,12 @@ export default function App() {
           'altPhone':['alternatemobileno','altmobile','altphone','phone2'],
           'dob':['dob','dateofbirth','birthdate'],
           'salary':['salary','monthlysalary','ctc'],
-          'fixedCutting':['fixedcutting','fixedcut','savingspermonth'],
+          'fixedCutting':['fixedcutting','fixedcut','savings','savingspermonth'],
           'advance':['advance','advancetaken','advanceamount'],
           'extraAdvance':['extraadvance','loan','loanamount','extraadvanceamount','loanoutstanding','totalloan'],
           'monthlyRecovery':['monthlyrecovery','monthyrecovery','loanrecovery','emiamount','loanemi','emi','monthlyrecoveryamount','monthyrecoveryamount','loanrecoveryamount','loanrecoveryemi','monthyrecoveryemi'],
           'totalOutstanding':['totaloutstanding','remainingloan','loanbalance','outstanding','totaloutstandingamount','outstandingamount'],
-          'totalSavings':['totalsavings','totalsaving','accumulatedsavings','totalsavingsamount','savings'],
+          'totalSavings':['totalsavings','totalsaving','accumulatedsavings','totalsavingsamount'],
           'daysPresent':['dayspresent','presentdays','noofdayspresent','present','dayspresentcount'],
           'daysAbsent':['daysabsent','absentdays','noofdaysabsent','absent','daysabsentcount'],
         };
