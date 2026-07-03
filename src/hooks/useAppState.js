@@ -341,11 +341,13 @@ export function useAppState(showToast) {
       const cur = prev[id] || { total:0, monthly:0, remaining:0, payments:[] };
       return { ...prev, [id]: { ...cur, remaining: Math.max(0, cur.remaining - amount), payments: [...cur.payments, { amount, note, date: now }] } };
     });
+    setStaff(prev => prev.map(x => x.id === id ? { ...x, totalOutstanding: Math.max(0, (x.totalOutstanding || 0) - amount) } : x));
     try {
       await api.addLoanPayment(id, amount, note);
       await addAuditEntry('LOAN_PAYMENT', id, 'remaining', null, amount);
     } catch(e) {
       setLoans(s.loans);
+      setStaff(s.staff);
       console.error('addLoanPayment:', e.message);
       if (showToast) showToast(`Failed to record loan payment: ${e.message}`, 'error');
       throw e;

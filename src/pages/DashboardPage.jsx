@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useRef } from 'react';
 import { StatCard, SectionHeader, ConfirmModal, EmptyState } from '../components/UI.jsx';
 import StaffModal         from '../components/StaffModal.jsx';
 import AttModal           from '../components/AttModal.jsx';
@@ -151,7 +151,105 @@ export default function DashboardPage({
   undo, redo, canUndo, canRedo,
   pushHistoryDirect, snapshot, bulkSetStaff, importStaff, showToast,
   triggerImport,
+  waConfig,
 }) {
+  const [bulkSending, setBulkSending] = useState(null);
+  const cancelledRef = useRef(false);
+
+  async function startBulkSend(targets, waCfg) {
+    cancelledRef.current = false;
+    setBulkSending(p => ({ ...p, status: 'sending', current: 0 }));
+
+    let successes = 0;
+    const failures = [];
+
+    for (let i = 0; i < targets.length; i++) {
+      if (cancelledRef.current) {
+        setBulkSending(p => ({ ...p, status: 'cancelled' }));
+        return;
+      }
+
+      const s = targets[i];
+      setBulkSending(p => ({ ...p, current: i + 1 }));
+
+      const sAtt = monthAtt[s.id] || {};
+      const commEarned = getStaffCommission(s.id);
+      const sal = calcSalary({ ...s, _commEarned: commEarned }, sAtt, curMonth, weeklyOff, holidays);
+      const saved = getSavings(s.id);
+      const loan = getLoan(s.id);
+      const isConf = saved.confirmed.includes(curMonth);
+      const msg = buildWhatsApp(s, sal, saved, loan, isConf, curMonth);
+
+      try {
+        const res = await fetch(`https://graph.facebook.com/v18.0/${waCfg.phoneId}/messages`, {
+          method: 'POST',
+          headers: { Authorization: `Bearer ${waCfg.token}`, 'Content-Type': 'application/json' },
+          body: JSON.stringify({ messaging_product: 'whatsapp', to: `91${s.phone}`, type: 'text', text: { body: msg } }),
+        });
+        const d = await res.json();
+        if (res.ok && d.messages) {
+          successes++;
+        } else {
+          failures.push({ name: s.name, error: d.error?.message || 'API error' });
+        }
+      } catch (err) {
+        failures.push({ name: s.name, error: err.message || 'Network error' });
+      }
+
+      setBulkSending(p => p ? { ...p, successes, failures: [...failures] } : null);
+      await new Promise(r => setTimeout(r, 200));
+    }
+
+    setBulkSending(p => p ? { ...p, status: 'complete' } : null);
+  }
+
+  function startFallbackSend(targets) {
+    setBulkSending(null);
+    targets.forEach((s, idx) => {
+      const sAtt = monthAtt[s.id] || {};
+      const commEarned = getStaffCommission(s.id);
+      const sal = calcSalary({ ...s, _commEarned: commEarned }, sAtt, curMonth, weeklyOff, holidays);
+      const saved = getSavings(s.id);
+      const loan = getLoan(s.id);
+      const isConf = saved.confirmed.includes(curMonth);
+      const msg = buildWhatsApp(s, sal, saved, loan, isConf, curMonth);
+      setTimeout(() => {
+        window.open(`https://wa.me/91${s.phone}?text=${encodeURIComponent(msg)}`, '_blank');
+      }, idx * 1000);
+    });
+    showToast(`Opening ${targets.length} WhatsApp Web tabs (check popup blocker)`, 'info');
+  }
+
+  function handleSendWaToAll() {
+    const waCfg = waConfig || {};
+    const targets = filtered.filter(s => s.phone);
+    if (targets.length === 0) {
+      showToast('No staff with phone numbers in the current list', 'warn');
+      return;
+    }
+
+    if (!waCfg.token || !waCfg.phoneId) {
+      setBulkSending({
+        total: targets.length,
+        current: 0,
+        successes: 0,
+        failures: [],
+        status: 'confirm_fallback',
+        targets
+      });
+      return;
+    }
+
+    setBulkSending({
+      total: targets.length,
+      current: 0,
+      successes: 0,
+      failures: [],
+      status: 'confirm',
+      targets
+    });
+  }
+
   async function handleConfirmAllSavings() {
     try {
       await confirmAllSavings(curMonth);
@@ -189,10 +287,21 @@ export default function DashboardPage({
   // Commission for a staff member in this month
   function getStaffCommission(staffId) {
     const data = getCommission ? getCommission(curMonth) : [];
-    const entry = data.find(d => d.staffId === staffId);
-    if (entry) return entry.empComm || 0;
-    const helperEntry = data.find(d => (d.helpers||[]).includes(staffId));
-    return helperEntry ? (helperEntry.perHelper || 0) : 0;
+    
+    const ownEntry = data.find(d => d.staffId === staffId);
+    const ownShare = ownEntry ? (ownEntry.empComm || 0) : 0;
+
+    const otherEntries = data.filter(d => d.staffId !== staffId);
+    const N = staff.length;
+    if (N <= 1) return ownShare;
+
+    let helperShareSum = 0;
+    otherEntries.forEach(d => {
+      const helperPool = d.helpTotal || 0;
+      helperShareSum += helperPool / (N - 1);
+    });
+
+    return Math.round(ownShare + helperShareSum);
   }
 
   // Branch + search + filter + sort
@@ -266,7 +375,7 @@ export default function DashboardPage({
 
   function sendWA(s, sal, saved, loan, isConf) {
     const msg = buildWhatsApp(s, sal, saved, loan, isConf, curMonth);
-    const waCfg = JSON.parse(localStorage.getItem('vm_wa') || '{}');
+    const waCfg = waConfig || {};
     if (waCfg.token && waCfg.phoneId && s.phone) {
       fetch(`https://graph.facebook.com/v18.0/${waCfg.phoneId}/messages`, {
         method:'POST',
@@ -347,6 +456,9 @@ export default function DashboardPage({
         </button>
         <button className="btn btn-sm" onClick={triggerImport}>
           <i className="ti ti-file-import"/> Import
+        </button>
+        <button className="btn btn-sm" onClick={handleSendWaToAll} style={{ color:'#25d366', borderColor:'#b2dfce', background:'#f0faf5' }}>
+          <i className="ti ti-brand-whatsapp"/> Send WhatsApp to All
         </button>
         <div style={{ display:'flex',gap:3 }}>
           <button className="btn btn-sm btn-icon" onClick={undo} disabled={!canUndo} title="Undo (Ctrl+Z)">
@@ -575,6 +687,122 @@ export default function DashboardPage({
           curMonth={curMonth}
           onClose={()=>setBreakupStaff(null)}
         />
+      )}
+      {bulkSending && (
+        <div style={{
+          position:'fixed', top:0, left:0, right:0, bottom:0,
+          background:'rgba(15,23,42,0.4)', backdropFilter:'blur(4px)',
+          display:'flex', alignItems:'center', justifyContent:'center', zIndex:9999
+        }}>
+          <div className="card" style={{ width:480, padding:25, display:'flex', flexDirection:'column', gap:15, boxShadow:'0 20px 25px -5px rgba(0,0,0,0.1), 0 10px 10px -5px rgba(0,0,0,0.04)' }}>
+            
+            {bulkSending.status === 'confirm' && (
+              <>
+                <div style={{ display:'flex', alignItems:'center', gap:10 }}>
+                  <div style={{ width:40, height:40, borderRadius:10, background:'#e8f8ef', display:'flex', alignItems:'center', justifyContent:'center' }}>
+                    <i className="ti ti-brand-whatsapp" style={{ fontSize:20, color:'#25d366' }}/>
+                  </div>
+                  <div>
+                    <h3 style={{ margin:0, fontSize:16, fontWeight:600 }}>Send Payslips to All Staff</h3>
+                    <p style={{ margin:0, fontSize:12, color:'var(--t3)' }}>Confirm bulk transmission</p>
+                  </div>
+                </div>
+                <p style={{ fontSize:13, color:'var(--t2)', lineHeight:1.5 }}>
+                  You are about to send monthly payslips and attendance records to <strong>{bulkSending.total} staff members</strong> via WhatsApp Business API.
+                </p>
+                <div style={{ display:'flex', justifyContent:'flex-end', gap:10, marginTop:10 }}>
+                  <button className="btn btn-sm btn-ghost" onClick={() => setBulkSending(null)}>Cancel</button>
+                  <button className="btn btn-sm btn-primary" style={{ background:'#25d366', borderColor:'#25d366' }} onClick={() => startBulkSend(bulkSending.targets, waConfig)}>
+                    Yes, Send All
+                  </button>
+                </div>
+              </>
+            )}
+
+            {bulkSending.status === 'confirm_fallback' && (
+              <>
+                <div style={{ display:'flex', alignItems:'center', gap:10 }}>
+                  <div style={{ width:40, height:40, borderRadius:10, background:'#fff8e1', display:'flex', alignItems:'center', justifyContent:'center' }}>
+                    <i className="ti ti-alert-triangle" style={{ fontSize:20, color:'#f59e0b' }}/>
+                  </div>
+                  <div>
+                    <h3 style={{ margin:0, fontSize:16, fontWeight:600 }}>API Config Missing</h3>
+                    <p style={{ margin:0, fontSize:12, color:'var(--t3)' }}>WhatsApp Business API not set up</p>
+                  </div>
+                </div>
+                <p style={{ fontSize:13, color:'var(--t2)', lineHeight:1.5 }}>
+                  WhatsApp Business API credentials are not configured. To send payslips to <strong>{bulkSending.total} staff</strong>, we must open individual WhatsApp Web tabs. 
+                  <br/><br/>
+                  <span style={{ color:'var(--r600)', fontWeight:500 }}>Warning:</span> Your browser may block these pop-ups, and you will have to manually click send on each screen.
+                </p>
+                <div style={{ display:'flex', justifyContent:'flex-end', gap:10, marginTop:10 }}>
+                  <button className="btn btn-sm btn-ghost" onClick={() => setBulkSending(null)}>Cancel</button>
+                  <button className="btn btn-sm btn-primary" onClick={() => startFallbackSend(bulkSending.targets)}>
+                    Open Tabs (1s delay)
+                  </button>
+                </div>
+              </>
+            )}
+
+            {['sending', 'complete', 'cancelled'].includes(bulkSending.status) && (
+              <>
+                <div style={{ display:'flex', alignItems:'center', justifyContent:'space-between' }}>
+                  <h3 style={{ margin:0, fontSize:16, fontWeight:600 }}>
+                    {bulkSending.status === 'sending' && 'Sending Messages...'}
+                    {bulkSending.status === 'complete' && 'Sending Complete'}
+                    {bulkSending.status === 'cancelled' && 'Sending Cancelled'}
+                  </h3>
+                  <span style={{ fontSize:12, fontWeight:500, color:'var(--t3)' }}>
+                    {bulkSending.current} / {bulkSending.total}
+                  </span>
+                </div>
+
+                <div style={{ width:'100%', height:8, background:'var(--border)', borderRadius:4, overflow:'hidden' }}>
+                  <div style={{
+                    width:`${(bulkSending.current / bulkSending.total) * 100}%`,
+                    height:'100%',
+                    background:bulkSending.status === 'cancelled' ? 'var(--r500)' : '#25d366',
+                    transition:'width 0.2s ease'
+                  }}/>
+                </div>
+
+                <div style={{ display:'flex', justifyContent:'space-between', fontSize:12 }}>
+                  <span style={{ color:'#1a6b35', fontWeight:500 }}>Success: {bulkSending.successes}</span>
+                  <span style={{ color:'var(--r600)', fontWeight:500 }}>Failed: {bulkSending.failures.length}</span>
+                </div>
+
+                {bulkSending.failures.length > 0 && (
+                  <div style={{
+                    maxHeight:120, overflowY:'auto', background:'var(--s2)',
+                    borderRadius:8, border:'1px solid var(--border)', padding:10,
+                    display:'flex', flexDirection:'column', gap:4
+                  }}>
+                    <span style={{ fontSize:11, fontWeight:600, color:'var(--t2)', marginBottom:4 }}>Errors:</span>
+                    {bulkSending.failures.map((f, idx) => (
+                      <div key={idx} style={{ fontSize:11, color:'var(--r600)', display:'flex', justifyContent:'space-between' }}>
+                        <span>{f.name}</span>
+                        <span>{f.error}</span>
+                      </div>
+                    ))}
+                  </div>
+                )}
+
+                <div style={{ display:'flex', justifyContent:'flex-end', marginTop:10 }}>
+                  {bulkSending.status === 'sending' ? (
+                    <button className="btn btn-sm btn-danger" onClick={() => { cancelledRef.current = true; }}>
+                      Cancel Sending
+                    </button>
+                  ) : (
+                    <button className="btn btn-sm btn-primary" onClick={() => setBulkSending(null)}>
+                      Close
+                    </button>
+                  )}
+                </div>
+              </>
+            )}
+
+          </div>
+        </div>
       )}
     </div>
   );

@@ -303,6 +303,7 @@ export default function App() {
             bulkSetStaff={A.bulkSetStaff} importStaff={A.importStaff}
             showToast={showToast}
             triggerImport={triggerImport}
+            waConfig={A.waConfig}
           />
         )}
         {page==='sheet' && (
@@ -313,6 +314,7 @@ export default function App() {
             curMonth={A.curMonth} setCurMonth={A.setCurMonth} allMonths={A.allMonths}
             getCommission={A.getCommission}
             getSavings={A.getSavings}
+            getLoan={A.getLoan}
             pushHistoryDirect={A.pushHistoryDirect} snapshot={A.snapshot}
             undo={A.undo} redo={A.redo} canUndo={A.canUndo} canRedo={A.canRedo}
             showToast={showToast}

@@ -31,7 +31,7 @@ function AttCell({ value, disabled, isToday, onChange }) {
 export default function SheetPage({
   staff,updateStaff,allAtt,markOne,allMonths,weeklyOff,holidays,
   curMonth,setCurMonth,pushHistoryDirect,snapshot,undo,redo,canUndo,canRedo,showToast,
-  getCommission,getSavings,triggerImport,
+  getCommission,getSavings,getLoan,triggerImport,
 }) {
   const [tab,setTab]=useState('staff');
   const [breakupStaff, setBreakupStaff] = useState(null);
@@ -42,10 +42,21 @@ export default function SheetPage({
 
   function getStaffCommission(staffId) {
     const data = getCommission ? getCommission(curMonth) : [];
-    const entry = data.find(d => d.staffId === staffId);
-    if (entry) return entry.empComm || 0;
-    const helperEntry = data.find(d => (d.helpers||[]).includes(staffId));
-    return helperEntry ? (helperEntry.perHelper || 0) : 0;
+    
+    const ownEntry = data.find(d => d.staffId === staffId);
+    const ownShare = ownEntry ? (ownEntry.empComm || 0) : 0;
+
+    const otherEntries = data.filter(d => d.staffId !== staffId);
+    const N = staff.length;
+    if (N <= 1) return ownShare;
+
+    let helperShareSum = 0;
+    otherEntries.forEach(d => {
+      const helperPool = d.helpTotal || 0;
+      helperShareSum += helperPool / (N - 1);
+    });
+
+    return Math.round(ownShare + helperShareSum);
   }
 
   const STAFF_COLS=[
@@ -55,7 +66,7 @@ export default function SheetPage({
     {k:'salary',l:'Salary',w:110,numeric:true},{k:'fixedCutting',l:'Fixed Cut',w:95,numeric:true},
     {k:'_commEarned',l:'Commission',w:110,disabled:true},
     {k:'advance',l:'Advance',w:90,numeric:true},{k:'extraAdvance',l:'Extra Adv',w:90,numeric:true},
-    {k:'monthlyRecovery',l:'Loan EMI',w:90,numeric:true},{k:'totalOutstanding',l:'Outstanding',w:100,numeric:true},
+    {k:'monthlyRecovery',l:'Loan EMI',w:90,numeric:true},{k:'totalOutstanding',l:'Outstanding',w:100,numeric:true,disabled:true},
     {k:'totalSavings',l:'Tot Savings',w:100,numeric:true},
     {k:'daysPresent',l:'Days Present',w:100,numeric:true},
     {k:'daysAbsent',l:'Days Absent',w:100,numeric:true},
@@ -87,7 +98,8 @@ export default function SheetPage({
       const sAtt=(allAtt[curMonth]||{})[s.id]||{};
       const commEarned=getStaffCommission(s.id);
       const sal=calcSalary({...s, _commEarned:commEarned},sAtt,curMonth,weeklyOff,holidays);
-      return{'ID':s.id,'Name':s.name,'Designation':s.designation,'Branch':s.branch,'Aadhar':s.aadhar,'Phone':s.phone,'Alt Phone':s.altPhone,'DOB':s.dob,'Salary':s.salary,'Fixed Cutting':s.fixedCutting,'Commission':sal.commEarned||0,'Advance':s.advance,'Extra Advance':s.extraAdvance,'Monthly Recovery':s.monthlyRecovery,'Outstanding':s.totalOutstanding,'Total Savings':s.totalSavings,'Days Present':sal.daysPresent,'PL':sal.daysPL,'UL':sal.daysUL,'Absent':sal.daysAbsent,'Paid Days':sal.paidDays,'Till-date Salary':sal.tillDateSalary,'Net Payable':sal.netPayable};
+      const loanRemaining = Math.max(0, Number(s.extraAdvance || 0) - Number(s.monthlyRecovery || 0));
+      return{'ID':s.id,'Name':s.name,'Designation':s.designation,'Branch':s.branch,'Salary':s.salary,'Fixed Cutting':s.fixedCutting,'Commission':sal.commEarned||0,'Advance':s.advance,'Extra Advance':s.extraAdvance,'Monthly Recovery':s.monthlyRecovery,'Outstanding':loanRemaining,'Total Savings':s.totalSavings,'Days Present':sal.daysPresent,'Absent':sal.daysAbsent,'Paid Days':sal.paidDays,'Till-date Salary':sal.tillDateSalary,'Net Payable':sal.netPayable};
     });
     XLSX.utils.book_append_sheet(wb,XLSX.utils.json_to_sheet(staffRows),'Staff');
     const attRows=staff.map(s=>{
@@ -130,7 +142,12 @@ export default function SheetPage({
                 const sal=calcSalary({...s, _commEarned:commEarned},sAtt,curMonth,weeklyOff,holidays);
                 return (
                   <tr key={s.id}>
-                    {STAFF_COLS.map(c=><td key={c.k} style={{padding:0}}><EditCell value={s[c.k]} numeric={c.numeric} disabled={c.disabled} options={c.options} onChange={v=>editStaffCell(idx,c.k,v)}/></td>)}
+                    {STAFF_COLS.map(c=>{
+                      const val = c.k === 'totalOutstanding' 
+                        ? Math.max(0, Number(s.extraAdvance || 0) - Number(s.monthlyRecovery || 0)) 
+                        : s[c.k];
+                      return <td key={c.k} style={{padding:0}}><EditCell value={val} numeric={c.numeric} disabled={c.disabled} options={c.options} onChange={v=>editStaffCell(idx,c.k,v)}/></td>;
+                    })}
                     <td style={{padding:'8px 12px',color:'var(--g800)',fontWeight:600}}>{inr(sal.tillDateSalary)}</td>
                     <td style={{padding:'8px 12px',fontWeight:700,color:sal.netPayable<0?'var(--r600)':'var(--t1)'}}>
                       <div style={{ display:'flex', alignItems:'center', justifyContent:'space-between' }}>
