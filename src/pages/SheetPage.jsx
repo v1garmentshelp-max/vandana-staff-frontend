@@ -103,7 +103,7 @@ export default function SheetPage({
       const commEarned=getStaffCommission(s.id);
       const sal=calcSalary({...s, _commEarned:commEarned},sAtt,curMonth,weeklyOff,holidays);
       const loanRemaining = Math.max(0, Number(s.extraAdvance || 0) - Number(s.monthlyRecovery || 0));
-      return{'ID':s.id,'Name':s.name,'Designation':s.designation,'Branch':s.branch,'Salary':s.salary,'Fixed Cutting':s.fixedCutting,'Commission':sal.commEarned||0,'Advance':s.advance,'Extra Advance':s.extraAdvance,'Monthly Recovery':s.monthlyRecovery,'Outstanding':loanRemaining,'Total Savings':s.totalSavings,'Days Present':sal.daysPresent,'Absent':sal.daysAbsent,'Paid Days':sal.paidDays,'Till-date Salary':sal.tillDateSalary,'Net Payable':sal.netPayable};
+      return{'ID':s.id,'Name':s.name,'Designation':s.designation,'Branch':s.branch,'Salary':s.salary,'Fixed Cutting':s.fixedCutting,'Advance':s.advance,'Extra Advance':s.extraAdvance,'Monthly Recovery':s.monthlyRecovery,'Outstanding':loanRemaining,'Total Savings':s.totalSavings,'Days Present':sal.daysPresent,'Absent':sal.daysAbsent,'Net Payable':sal.netPayable};
     });
     XLSX.utils.book_append_sheet(wb,XLSX.utils.json_to_sheet(staffRows),'Staff');
     const attRows=staff.map(s=>{
