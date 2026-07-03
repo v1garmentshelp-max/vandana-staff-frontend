@@ -122,18 +122,29 @@ export default function App() {
               }
             }
           });
-          NUM.forEach(k => { if (mapped[k] !== undefined) mapped[k] = Number(mapped[k]) || 0; });
-          const rowId   = String(mapped.id||'').trim();
+          NUM.forEach(k => {
+            if (mapped[k] !== undefined) {
+              const cleaned = String(mapped[k]).replace(/[^\d.-]/g, '');
+              mapped[k] = Number(cleaned) || 0;
+            }
+          });
+          const rowId   = String(mapped.id||'').trim().replace(/[\s.-]+/g, '');
           const rowName = String(mapped.name||'').trim().toUpperCase();
           if (!rowId && !rowName) return;
 
           if (rowId) excelIds.add(rowId);
           if (rowName) excelNames.add(rowName);
 
-          const exist = A.staff.find(s =>
-            (rowId   && String(s.id) === rowId) ||
-            (rowName && s.name.toUpperCase() === rowName)
-          );
+          const exist = A.staff.find(s => {
+            const dbId = String(s.id).trim().replace(/[\s.-]+/g, '');
+            if (rowId && dbId === rowId) return true;
+            if (!rowId && rowName) {
+              const dbName = s.name.trim().toUpperCase().replace(/[\s_.-]+/g, '');
+              const excelName = rowName.replace(/[\s_.-]+/g, '');
+              return dbName === excelName;
+            }
+            return false;
+          });
 
           if (exist) {
             const diffs = [];
