@@ -2,7 +2,7 @@ import { useState } from 'react';
 import { Modal } from './UI.jsx';
 import { inr } from '../utils/helpers.js';
 
-const MERGE_ELIGIBLE = ['advance','extraAdvance','totalSavings'];
+const MERGE_ELIGIBLE = ['advance','extraAdvance'];
 const NUMERIC = ['salary','fixedCutting','advance','extraAdvance','monthlyRecovery','totalOutstanding','totalSavings'];
 const LABELS = {
   name:'Name', designation:'Designation', branch:'Branch', aadhar:'Aadhar',

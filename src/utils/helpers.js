@@ -67,7 +67,7 @@ export function calcSalary(emp, sAtt={}, ym, weeklyOff, holidays, upTo=todayStr(
 
   const dailyRate      = N > 0 ? emp.salary / N : 0;
   const tillDateSalary = Math.round(paidDays * dailyRate);
-  const fixedCut       = Number(emp.fixedCutting||0);
+  const fixedCut       = emp._savingsConfirmed ? Number(emp.fixedCutting||0) : 0;
   const advanceCut     = Number(emp.advance||0);
   const loanCut        = Number(emp.monthlyRecovery||0);
   const commEarned     = Number(emp._commEarned||0);   // injected per-render from commission data

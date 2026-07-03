@@ -101,7 +101,9 @@ export default function SheetPage({
     const staffRows=staff.map(s=>{
       const sAtt=(allAtt[curMonth]||{})[s.id]||{};
       const commEarned=getStaffCommission(s.id);
-      const sal=calcSalary({...s, _commEarned:commEarned},sAtt,curMonth,weeklyOff,holidays);
+      const saved = getSavings(s.id);
+      const isConf = saved.confirmed.includes(curMonth);
+      const sal=calcSalary({...s, _commEarned:commEarned, _savingsConfirmed:isConf},sAtt,curMonth,weeklyOff,holidays);
       const loanRemaining = Math.max(0, Number(s.extraAdvance || 0) - Number(s.monthlyRecovery || 0));
       return{'ID':s.id,'Name':s.name,'Designation':s.designation,'Branch':s.branch,'Salary':s.salary,'Fixed Cutting':s.fixedCutting,'Advance':s.advance,'Extra Advance':s.extraAdvance,'Monthly Recovery':s.monthlyRecovery,'Outstanding':loanRemaining,'Total Savings':s.totalSavings,'Days Present':sal.daysPresent,'Absent':sal.daysAbsent,'Net Payable':sal.netPayable};
     });
@@ -143,7 +145,9 @@ export default function SheetPage({
               {staff.map((s,idx)=>{
                 const sAtt=(allAtt[curMonth]||{})[s.id]||{};
                 const commEarned=getStaffCommission(s.id);
-                const sal=calcSalary({...s, _commEarned:commEarned},sAtt,curMonth,weeklyOff,holidays);
+                const saved = getSavings(s.id);
+                const isConf = saved.confirmed.includes(curMonth);
+                const sal=calcSalary({...s, _commEarned:commEarned, _savingsConfirmed:isConf},sAtt,curMonth,weeklyOff,holidays);
                 return (
                   <tr key={s.id}>
                     {STAFF_COLS.map(c=>{
@@ -205,7 +209,7 @@ export default function SheetPage({
       {breakupStaff && (
         <SalaryBreakupModal
           staff={breakupStaff}
-          sal={calcSalary({ ...breakupStaff, _commEarned: getStaffCommission(breakupStaff.id) }, (allAtt[curMonth]||{})[breakupStaff.id]||{}, curMonth, weeklyOff, holidays)}
+          sal={calcSalary({ ...breakupStaff, _commEarned: getStaffCommission(breakupStaff.id), _savingsConfirmed: getSavings(breakupStaff.id).confirmed.includes(curMonth) }, (allAtt[curMonth]||{})[breakupStaff.id]||{}, curMonth, weeklyOff, holidays)}
           curMonth={curMonth}
           onClose={()=>setBreakupStaff(null)}
         />

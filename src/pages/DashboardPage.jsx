@@ -174,10 +174,10 @@ export default function DashboardPage({
 
       const sAtt = monthAtt[s.id] || {};
       const commEarned = getStaffCommission(s.id);
-      const sal = calcSalary({ ...s, _commEarned: commEarned }, sAtt, curMonth, weeklyOff, holidays);
       const saved = getSavings(s.id);
-      const loan = getLoan(s.id);
       const isConf = saved.confirmed.includes(curMonth);
+      const sal = calcSalary({ ...s, _commEarned: commEarned, _savingsConfirmed: isConf }, sAtt, curMonth, weeklyOff, holidays);
+      const loan = getLoan(s.id);
       const msg = buildWhatsApp(s, sal, saved, loan, isConf, curMonth);
 
       try {
@@ -208,10 +208,10 @@ export default function DashboardPage({
     targets.forEach((s, idx) => {
       const sAtt = monthAtt[s.id] || {};
       const commEarned = getStaffCommission(s.id);
-      const sal = calcSalary({ ...s, _commEarned: commEarned }, sAtt, curMonth, weeklyOff, holidays);
       const saved = getSavings(s.id);
-      const loan = getLoan(s.id);
       const isConf = saved.confirmed.includes(curMonth);
+      const sal = calcSalary({ ...s, _commEarned: commEarned, _savingsConfirmed: isConf }, sAtt, curMonth, weeklyOff, holidays);
+      const loan = getLoan(s.id);
       const msg = buildWhatsApp(s, sal, saved, loan, isConf, curMonth);
       setTimeout(() => {
         window.open(`https://wa.me/91${s.phone}?text=${encodeURIComponent(msg)}`, '_blank');
@@ -490,10 +490,10 @@ export default function DashboardPage({
               {filtered.map(s => {
                 const sAtt       = monthAtt[s.id] || {};
                 const commEarned = getStaffCommission(s.id);
-                const sal        = calcSalary({ ...s, _commEarned:commEarned }, sAtt, curMonth, weeklyOff, holidays);
                 const saved      = getSavings(s.id);
-                const loan       = getLoan(s.id);
                 const isConf     = saved.confirmed.includes(curMonth);
+                const sal        = calcSalary({ ...s, _commEarned:commEarned, _savingsConfirmed:isConf }, sAtt, curMonth, weeklyOff, holidays);
+                const loan       = getLoan(s.id);
                 const todayStat  = sAtt[todaySt];
                 return (
                   <tr key={s.id}>
@@ -683,7 +683,7 @@ export default function DashboardPage({
       {breakupStaff && (
         <SalaryBreakupModal
           staff={breakupStaff}
-          sal={calcSalary({ ...breakupStaff, _commEarned: getStaffCommission(breakupStaff.id) }, monthAtt[breakupStaff.id]||{}, curMonth, weeklyOff, holidays)}
+          sal={calcSalary({ ...breakupStaff, _commEarned: getStaffCommission(breakupStaff.id), _savingsConfirmed: getSavings(breakupStaff.id).confirmed.includes(curMonth) }, monthAtt[breakupStaff.id]||{}, curMonth, weeklyOff, holidays)}
           curMonth={curMonth}
           onClose={()=>setBreakupStaff(null)}
         />
