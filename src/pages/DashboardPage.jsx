@@ -10,11 +10,15 @@ import { ATT_STATUSES, ATT_LABELS, BRANCHES } from '../utils/constants.js';
 const ATT_BG  = { P:'#d4edda', PL:'var(--b100)', UL:'var(--a100)', A:'var(--r100)' };
 const ATT_COL = { P:'#1a6b35', PL:'var(--b600)', UL:'var(--a600)', A:'var(--r600)' };
 
-// ── WhatsApp message builder ──────────────────────────────────────────────────
 function buildWhatsApp(s, sal, savings, loan, isConf, curMonth) {
   const [y,m] = curMonth.split('-');
   const ML = ['January','February','March','April','May','June','July','August','September','October','November','December'];
   const label = `${ML[Number(m)-1]} ${y}`;
+  
+  const loanTotal = loan.total || Number(s.extraAdvance || 0);
+  const loanMonthly = loan.monthly || Number(s.monthlyRecovery || 0);
+  const loanRemaining = loan.remaining !== undefined && loan.remaining !== null && loan.total > 0 ? loan.remaining : Number(s.totalOutstanding || 0);
+
   return `Hi ${s.name},
 
 📋 *Attendance & Salary — ${label}*
@@ -42,9 +46,9 @@ This Month        : ${isConf ? '✅ Confirmed' : '⏳ Pending'}
 Total Savings     : ${inr(s.totalSavings)}
 
 🏦 *Loan*
-Total Loan       : ${inr(loan.total)}
-Monthly Recovery : ${inr(loan.monthly)}
-Remaining        : ${inr(loan.remaining)}
+Total Loan       : ${inr(loanTotal)}
+Monthly Recovery : ${inr(loanMonthly)}
+Remaining        : ${inr(loanRemaining)}
 
 — Vandana Shopping Mall Management`;
 }
