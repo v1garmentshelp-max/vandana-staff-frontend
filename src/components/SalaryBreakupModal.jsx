@@ -61,19 +61,21 @@ export default function SalaryBreakupModal({ staff, sal, curMonth, onClose }) {
           <div style={{ background: '#fff', padding: 8, borderRadius: 6, border: '1px dashed var(--border)' }}>
             <p style={{ fontWeight: 600, color: 'var(--g800)', margin: '0 0 4px 0', fontSize: 11 }}>Rules Applied:</p>
             <p style={{ fontSize: 11, color: 'var(--t3)', margin: 0, lineHeight: 1.45 }}>
-              {(sal.daysPresent + sal.daysPL) >= sal.allWorkDays ? (
+              {sal.workDays <= 15 ? (
                 <span>
-                  Staff worked standard days or more ({sal.daysPresent + sal.daysPL} worked &ge; {sal.allWorkDays} standard).
+                  Staff worked 15 days or less ({sal.workDays} days worked).
                   <br />
-                  <strong>Paid Days:</strong> Calendar days ({is30 ? 30 : 31}) + {sal.daysPresent + sal.daysPL - sal.allWorkDays} extra worked day(s) = <strong>{sal.paidDays} Paid Days</strong>.
+                  <strong>Weekoffs Cancelled:</strong> Worked &le; 15 days, so all weekoff payments are cancelled.
+                  <br />
+                  <strong>Paid Days:</strong> {sal.workDays} worked + 0 paid weekoffs = <strong>{sal.paidDays} Paid Days</strong>.
                 </span>
               ) : (
                 <span>
-                  Staff worked less than standard ({sal.daysPresent + sal.daysPL} worked &lt; {sal.allWorkDays} standard).
+                  Staff worked 16 days or more ({sal.workDays} days worked).
                   <br />
-                  <strong>Penalty:</strong> Double cut applied (1 workday cut + 1 weekoff cancelled).
+                  <strong>Weekoff Rule:</strong> Every 5 days worked = 1 paid weekoff (capped at standard {sal.stdWeekoffs}).
                   <br />
-                  <strong>Paid Days:</strong> {sal.daysPresent + sal.daysPL} worked + 4 paid weekoffs = <strong>{sal.paidDays} Paid Days</strong>.
+                  <strong>Paid Days:</strong> {sal.workDays} worked + {sal.paidWeekoffs} paid weekoff(s) = <strong>{sal.paidDays} Paid Days</strong>.
                 </span>
               )}
             </p>

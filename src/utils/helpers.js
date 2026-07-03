@@ -59,14 +59,11 @@ export function calcSalary(emp, sAtt={}, ym, weeklyOff, holidays, upTo=todayStr(
   // Work days to compare against standard workdays (present + paid leaves + holidays)
   const workDays = hasImportedDays ? daysPresent : (daysPresent + daysPL + daysHoliday);
 
-  let paidDays = 0;
-  if (workDays >= stdWorkdays) {
-    // Standard paid days (N) + extra days worked beyond standard workdays
-    paidDays = N + (workDays - stdWorkdays);
-  } else {
-    // Present days + cancelled weekoff penalty (stdWeekoffs - 1)
-    paidDays = workDays + (stdWeekoffs - 1);
+  let paidWeekoffs = 0;
+  if (workDays >= 16) {
+    paidWeekoffs = Math.min(stdWeekoffs, Math.floor(workDays / 5));
   }
+  const paidDays = workDays + paidWeekoffs;
 
   const dailyRate      = N > 0 ? emp.salary / N : 0;
   const tillDateSalary = Math.round(paidDays * dailyRate);
@@ -76,7 +73,7 @@ export function calcSalary(emp, sAtt={}, ym, weeklyOff, holidays, upTo=todayStr(
   const commEarned     = Number(emp._commEarned||0);   // injected per-render from commission data
   const netPayable     = Math.max(0, tillDateSalary - fixedCut - advanceCut - loanCut + commEarned);
 
-  return { allWorkDays: stdWorkdays, dailyRate: Math.round(dailyRate), daysPresent, daysPL, daysUL, daysAbsent, paidDays, tillDateSalary, fixedCut, advanceCut, loanCut, commEarned, netPayable };
+  return { allWorkDays: stdWorkdays, stdWeekoffs, workDays, paidWeekoffs, dailyRate: Math.round(dailyRate), daysPresent, daysPL, daysUL, daysAbsent, paidDays, tillDateSalary, fixedCut, advanceCut, loanCut, commEarned, netPayable };
 }
 
 // ── Storage ───────────────────────────────────────────────────────────────────
