@@ -24,9 +24,9 @@ const del  = (path)       => req('DELETE', path);
 
 export const api = {
   // Staff
-  getStaff:         ()            => get('/api/staff'),
+  getStaff:         (month)       => get(`/api/staff${month ? `?month=${month}` : ''}`),
   addStaff:         (data)        => post('/api/staff', data),
-  updateStaff:      (id, data)    => put(`/api/staff/${id}`, data),
+  updateStaff:      (id, data, month) => put(`/api/staff/${id}${month ? `?month=${month}` : ''}`, data),
   deleteStaff:      (id)          => del(`/api/staff/${id}`),
   bulkImport:       (changes, month) => post('/api/staff/bulk', { changes, month }),
 

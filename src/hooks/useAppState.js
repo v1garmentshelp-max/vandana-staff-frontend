@@ -28,14 +28,17 @@ export function useAppState(showToast) {
   }, [curMonth]);
 
   useEffect(() => { loadAll(); }, []);
-  useEffect(() => { loadAttendance(curMonth); }, [curMonth]);
-  useEffect(() => { loadCommission(curMonth); }, [curMonth]);
+  useEffect(() => {
+    loadAttendance(curMonth);
+    loadCommission(curMonth);
+    loadStaffForMonth(curMonth);
+  }, [curMonth]);
 
   async function loadAll() {
     setLoading(true); setError(null);
     try {
       const [staffData, savingsData, loansData, settingsData, auditData, attMonthsData] = await Promise.all([
-        api.getStaff(), api.getSavings(), api.getLoans(),
+        api.getStaff(curMonth), api.getSavings(), api.getLoans(),
         api.getSettings(), api.getAudit(), api.getAttMonths(),
       ]);
       setStaff(staffData);
@@ -48,6 +51,16 @@ export function useAppState(showToast) {
       setAttMonths(attMonthsData);
     } catch(e) { setError(e.message); }
     finally { setLoading(false); }
+  }
+
+  async function loadStaffForMonth(month) {
+    try {
+      const data = await api.getStaff(month);
+      setStaff(data);
+    } catch(e) {
+      console.error('loadStaffForMonth:', e.message);
+      if (showToast) showToast(`Failed to load staff data: ${e.message}`, 'error');
+    }
   }
 
   async function loadAttendance(month) {
@@ -149,7 +162,7 @@ export function useAppState(showToast) {
   async function addStaff(member) {
     const s = snap(); pushH(s);
     try {
-      const created = await api.addStaff(member);
+      const created = await api.addStaff({ ...member, importMonth: curMonth });
       setStaff(prev => [...prev, created]);
       await addAuditEntry('ADD_STAFF', created.id, null, null, created.name);
     } catch(e) {
@@ -164,7 +177,7 @@ export function useAppState(showToast) {
     const existing = staff.find(x => x.id === id);
     setStaff(prev => prev.map(x => x.id === id ? { ...x, ...changes } : x));
     try {
-      await api.updateStaff(id, { ...existing, ...changes });
+      await api.updateStaff(id, { ...existing, ...changes }, curMonth);
       await addAuditEntry('UPDATE_STAFF', id, null, null, JSON.stringify(changes));
     } catch(e) {
       setStaff(prev => prev.map(x => x.id === id ? existing : x));
@@ -431,7 +444,7 @@ export function useAppState(showToast) {
   async function silentReload() {
     try {
       const [staffData, savingsData, loansData, auditData] = await Promise.all([
-        api.getStaff(), api.getSavings(), api.getLoans(), api.getAudit()
+        api.getStaff(curMonth), api.getSavings(), api.getLoans(), api.getAudit()
       ]);
       setStaff(staffData);
       setAllSavings(savingsData);
