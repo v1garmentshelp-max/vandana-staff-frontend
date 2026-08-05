@@ -128,6 +128,9 @@ export default function App() {
               mapped[k] = Number(cleaned) || 0;
             }
           });
+          if (mapped['advance'] === undefined) {
+            mapped['advance'] = 0;
+          }
           const rowId   = String(mapped.id||'').trim().replace(/[\s.-]+/g, '');
           const rowName = String(mapped.name||'').trim().toUpperCase();
           if (!rowId && !rowName) return;
@@ -156,7 +159,7 @@ export default function App() {
               let isDiff = false;
               if (NUM.includes(k)) {
                 const oldNum = Number(exist[k]) || 0;
-                const newNum = Number(finalV) || 0;
+                const newNum = MERGE.includes(k) ? (Number(newV) || 0) : (Number(finalV) || 0);
                 if (oldNum !== newNum) isDiff = true;
               } else {
                 const oldStr = String(exist[k] || '').trim();

@@ -20,7 +20,7 @@ export const DAY_ABBR = ['Su','Mo','Tu','We','Th','Fr','Sa'];
 // ── Salary ────────────────────────────────────────────────────────────────────
 export function calcSalary(emp, sAtt={}, ym, weeklyOff, holidays, upTo=todayStr()) {
   const range       = dateRange(ym);
-  const N           = range.length; // Number of days in the month (e.g. 30, 31, 28, 29)
+  const N           = range.length === 31 ? 30 : range.length; // Number of days in the month (e.g. 30, 31, 28, 29)
   
   // Determine standard weekoffs and workdays
   const stdWeekoffs = N === 28 ? 4 : 5;
@@ -63,7 +63,7 @@ export function calcSalary(emp, sAtt={}, ym, weeklyOff, holidays, upTo=todayStr(
   if (workDays >= 16) {
     paidWeekoffs = Math.min(stdWeekoffs, Math.floor(workDays / 5));
   }
-  const paidDays = workDays + paidWeekoffs;
+  const paidDays = Math.min(N - daysAbsent, workDays + paidWeekoffs);
 
   const dailyRate      = N > 0 ? emp.salary / N : 0;
   const tillDateSalary = Math.round(paidDays * dailyRate);
