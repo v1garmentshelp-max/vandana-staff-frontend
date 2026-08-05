@@ -29,10 +29,10 @@ export function calcSalary(emp, sAtt={}, ym, weeklyOff, holidays, upTo=todayStr(
   let daysPresent=0, daysPL=0, daysUL=0, daysAbsent=0, daysHoliday=0;
 
   const hasCalendarAtt = sAtt && Object.keys(sAtt).length > 0;
-  const hasImportedDays = !hasCalendarAtt && (!emp.importMonth || emp.importMonth === ym) && (
+  const hasImportedDays = emp.importMonth === ym || (!hasCalendarAtt && (
     (emp.daysPresent !== undefined && emp.daysPresent !== null && emp.daysPresent !== '') ||
     (emp.daysAbsent !== undefined && emp.daysAbsent !== null && emp.daysAbsent !== '')
-  );
+  ));
 
   if (hasImportedDays) {
     daysPresent = Number(emp.daysPresent || 0);
@@ -63,7 +63,7 @@ export function calcSalary(emp, sAtt={}, ym, weeklyOff, holidays, upTo=todayStr(
   if (workDays >= 16) {
     paidWeekoffs = Math.min(stdWeekoffs, Math.floor(workDays / 5));
   }
-  const paidDays = workDays + paidWeekoffs;
+  const paidDays = Math.min(N - daysAbsent, workDays + paidWeekoffs);
 
   const dailyRate      = N > 0 ? emp.salary / N : 0;
   const tillDateSalary = Math.round(paidDays * dailyRate);
