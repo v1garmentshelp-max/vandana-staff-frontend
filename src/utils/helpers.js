@@ -20,11 +20,12 @@ export const DAY_ABBR = ['Su','Mo','Tu','We','Th','Fr','Sa'];
 // ── Salary ────────────────────────────────────────────────────────────────────
 export function calcSalary(emp, sAtt={}, ym, weeklyOff, holidays, upTo=todayStr()) {
   const range       = dateRange(ym);
-  const N           = range.length === 31 ? 30 : range.length; // Number of days in the month (e.g. 30, 31, 28, 29)
+  const calendarDays = range.length;
+  const divisor     = (calendarDays === 31 || calendarDays === 30) ? 30 : calendarDays;
   
-  // Determine standard weekoffs and workdays
-  const stdWeekoffs = N === 28 ? 4 : 5;
-  const stdWorkdays = N - stdWeekoffs;
+  // Determine standard weekoffs and workdays based on actual calendar days
+  const stdWeekoffs = calendarDays === 28 ? 4 : 5;
+  const stdWorkdays = calendarDays - stdWeekoffs;
   
   let daysPresent=0, daysPL=0, daysUL=0, daysAbsent=0, daysHoliday=0;
 
@@ -63,9 +64,9 @@ export function calcSalary(emp, sAtt={}, ym, weeklyOff, holidays, upTo=todayStr(
   if (workDays >= 16) {
     paidWeekoffs = Math.min(stdWeekoffs, Math.floor(workDays / 5));
   }
-  const paidDays = Math.min(N - daysAbsent, workDays + paidWeekoffs);
+  const paidDays = Math.min(divisor - daysAbsent, workDays + paidWeekoffs);
 
-  const dailyRate      = N > 0 ? emp.salary / N : 0;
+  const dailyRate      = divisor > 0 ? emp.salary / divisor : 0;
   const tillDateSalary = Math.round(paidDays * dailyRate);
   const fixedCut       = emp._savingsConfirmed ? Number(emp.fixedCutting||0) : 0;
   const advanceCut     = Number(emp.advance||0);
@@ -73,7 +74,7 @@ export function calcSalary(emp, sAtt={}, ym, weeklyOff, holidays, upTo=todayStr(
   const commEarned     = Number(emp._commEarned||0);   // injected per-render from commission data
   const netPayable     = Math.max(0, tillDateSalary - fixedCut - advanceCut - loanCut + commEarned);
 
-  return { allWorkDays: stdWorkdays, stdWeekoffs, workDays, paidWeekoffs, dailyRate: Math.round(dailyRate), daysPresent, daysPL, daysUL, daysAbsent, paidDays, tillDateSalary, fixedCut, advanceCut, loanCut, commEarned, netPayable };
+  return { divisor, allWorkDays: stdWorkdays, stdWeekoffs, workDays, paidWeekoffs, dailyRate: Math.round(dailyRate), daysPresent, daysPL, daysUL, daysAbsent, paidDays, tillDateSalary, fixedCut, advanceCut, loanCut, commEarned, netPayable };
 }
 
 // ── Storage ───────────────────────────────────────────────────────────────────

@@ -6,9 +6,8 @@ export default function SalaryBreakupModal({ staff, sal, curMonth, onClose }) {
   const totalDays = Number(sal.paidDays + sal.daysAbsent + sal.daysUL); // total month days roughly
   
   // Custom plan details
-  const N = totalDays; // total calendar days
-  const is30 = sal.allWorkDays === 25;
-  const planLabel = is30 ? '30-Day Plan (25 Workdays, 5 Weekoffs)' : '31-Day Plan (26 Workdays, 5 Weekoffs)';
+  const calendarDays = sal.allWorkDays + sal.stdWeekoffs;
+  const planLabel = `${calendarDays}-Day Plan (${sal.allWorkDays} Workdays, ${sal.stdWeekoffs} Weekoffs)`;
   
   return (
     <Modal title="Salary Breakup & Calculations" onClose={onClose} width={480}>
@@ -40,7 +39,7 @@ export default function SalaryBreakupModal({ staff, sal, curMonth, onClose }) {
           </div>
           <div style={{ display: 'flex', justifyContent: 'space-between' }}>
             <span>Daily Rate Calculation:</span>
-            <span style={{ fontWeight: 600 }}>{inr(baseSalary)} ÷ {is30 ? 30 : 31} days = {inr(sal.dailyRate)}/day</span>
+            <span style={{ fontWeight: 600 }}>{inr(baseSalary)} ÷ {sal.divisor || 30} days = {inr(sal.dailyRate)}/day</span>
           </div>
           
           <hr style={{ border: 'none', borderTop: '1px solid var(--border)', margin: '4px 0' }} />
