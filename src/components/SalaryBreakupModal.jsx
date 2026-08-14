@@ -35,7 +35,7 @@ export default function SalaryBreakupModal({ staff, sal, curMonth, onClose }) {
           </p>
           <div style={{ display: 'flex', justifyContent: 'space-between' }}>
             <span>Plan Applied:</span>
-            <span style={{ fontWeight: 600 }}>{planLabel}</span>
+            <span style={{ fontWeight: 600 }}>26 Workdays & 4 Weekoffs Plan</span>
           </div>
           <div style={{ display: 'flex', justifyContent: 'space-between' }}>
             <span>Daily Rate Calculation:</span>
@@ -46,8 +46,16 @@ export default function SalaryBreakupModal({ staff, sal, curMonth, onClose }) {
 
           <p style={{ fontWeight: 600, color: 'var(--t1)', margin: '4px 0 2px 0' }}>Attendance Summary</p>
           <div style={{ display: 'flex', justifyContent: 'space-between' }}>
-            <span>Days Worked (Present + PL):</span>
-            <span>{sal.daysPresent} Present + {sal.daysPL} Paid Leave</span>
+            <span>Workdays Attended (Present + PL + Hol):</span>
+            <span>{sal.workDays} days</span>
+          </div>
+          <div style={{ display: 'flex', justifyContent: 'space-between' }}>
+            <span>Standard Paid Weekoffs:</span>
+            <span>{sal.paidWeekoffs} days</span>
+          </div>
+          <div style={{ display: 'flex', justifyContent: 'space-between' }}>
+            <span>Extra Weekoffs Worked:</span>
+            <span style={{ color: 'var(--g800)', fontWeight: 600 }}>+{sal.weekoffsWorked} days</span>
           </div>
           <div style={{ display: 'flex', justifyContent: 'space-between' }}>
             <span>Days Absent (A / UL):</span>
@@ -60,23 +68,11 @@ export default function SalaryBreakupModal({ staff, sal, curMonth, onClose }) {
           <div style={{ background: '#fff', padding: 8, borderRadius: 6, border: '1px dashed var(--border)' }}>
             <p style={{ fontWeight: 600, color: 'var(--g800)', margin: '0 0 4px 0', fontSize: 11 }}>Rules Applied:</p>
             <p style={{ fontSize: 11, color: 'var(--t3)', margin: 0, lineHeight: 1.45 }}>
-              {sal.workDays <= 15 ? (
-                <span>
-                  Staff worked 15 days or less ({sal.workDays} days worked).
-                  <br />
-                  <strong>Weekoffs Cancelled:</strong> Worked &le; 15 days, so all weekoff payments are cancelled.
-                  <br />
-                  <strong>Paid Days:</strong> {sal.workDays} worked + 0 paid weekoffs = <strong>{sal.paidDays} Paid Days</strong>.
-                </span>
-              ) : (
-                <span>
-                  Staff worked 16 days or more ({sal.workDays} days worked).
-                  <br />
-                  <strong>Weekoff Rule:</strong> Every 5 days worked = 1 paid weekoff (capped at standard {sal.stdWeekoffs}).
-                  <br />
-                  <strong>Paid Days:</strong> {sal.workDays} worked + {sal.paidWeekoffs} paid weekoff(s) = <strong>{sal.paidDays} Paid Days</strong>.
-                </span>
-              )}
+              <span>
+                Standard Month = 26 Workdays + 4 Weekoffs.
+                <br />
+                <strong>Paid Days Formula:</strong> Workdays ({sal.workDays}) + Paid Weekoffs ({sal.paidWeekoffs}) + Extra Weekoffs Worked ({sal.weekoffsWorked}) = <strong>{sal.paidDays} Paid Days</strong>.
+              </span>
             </p>
           </div>
         </div>

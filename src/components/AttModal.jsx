@@ -8,7 +8,7 @@ const CL={P:'#1a6b35',PL:'var(--b600)',UL:'var(--a600)',A:'var(--r600)'};
 
 export default function AttModal({staffName,staffId,sAtt,curMonth,weeklyOff,holidays,onMark,onClose}) {
   const days=dateRange(curMonth), first=getFirstDOW(curMonth), today=todayStr(), isCur=monthKey(today)===curMonth;
-  function click(d){ if(!isCur||isWeeklyOff(d,weeklyOff)||isHoliday(d,holidays)||d>today) return; onMark(staffId,d,next(sAtt[d]||null)); }
+  function click(d){ if(!isCur||d>today) return; onMark(staffId,d,next(sAtt[d]||null)); }
   return (
     <Modal title={`${staffName} — ${formatMonth(curMonth)}`} onClose={onClose} width={520}>
       <div style={{display:'grid',gridTemplateColumns:'repeat(7,1fr)',gap:3,marginBottom:3}}>
@@ -18,12 +18,12 @@ export default function AttModal({staffName,staffId,sAtt,curMonth,weeklyOff,holi
         {Array(first).fill(null).map((_,i)=><div key={'b'+i}/>)}
         {days.map(d=>{
           const off=isWeeklyOff(d,weeklyOff),hol=isHoliday(d,holidays),st=sAtt[d],isToday=d===today,fut=d>today;
-          let bg=off?'var(--p100)':hol?'var(--g50)':fut?'var(--s2)':BG[st]||'var(--s2)';
-          let col=off?'var(--p600)':hol?'var(--g700)':fut?'var(--border2)':CL[st]||'var(--t3)';
+          let bg=st?BG[st]:off?'var(--p100)':hol?'var(--g50)':fut?'var(--s2)':'var(--s2)';
+          let col=st?CL[st]:off?'var(--p600)':hol?'var(--g700)':fut?'var(--border2)':'var(--t3)';
           return (
-            <div key={d} onClick={()=>click(d)} style={{borderRadius:7,background:bg,padding:'7px 3px',textAlign:'center',cursor:(!off&&!hol&&!fut&&isCur)?'pointer':'default',border:isToday?'2px solid var(--g800)':'2px solid transparent',transition:'all .1s'}}>
+            <div key={d} onClick={()=>click(d)} style={{borderRadius:7,background:bg,padding:'7px 3px',textAlign:'center',cursor:(!fut&&isCur)?'pointer':'default',border:isToday?'2px solid var(--g800)':'2px solid transparent',transition:'all .1s'}}>
               <div style={{fontSize:12,fontWeight:600,color:col}}>{Number(d.slice(8))}</div>
-              <div style={{fontSize:10,color:col}}>{off?'Off':hol?'Hol':st||'—'}</div>
+              <div style={{fontSize:10,color:col}}>{st||(off?'Off':hol?'Hol':'—')}</div>
             </div>
           );
         })}

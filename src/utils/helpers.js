@@ -24,10 +24,10 @@ export function calcSalary(emp, sAtt={}, ym, weeklyOff, holidays, upTo=todayStr(
   const divisor     = (calendarDays === 31 || calendarDays === 30) ? 30 : calendarDays;
   
   // Determine standard weekoffs and workdays based on actual calendar days
-  const stdWeekoffs = calendarDays === 28 ? 4 : 5;
-  const stdWorkdays = calendarDays - stdWeekoffs;
+  const stdWeekoffs = 4;
+  const stdWorkdays = divisor - stdWeekoffs;
   
-  let daysPresent=0, daysPL=0, daysUL=0, daysAbsent=0, daysHoliday=0;
+  let daysPresent=0, daysPL=0, daysUL=0, daysAbsent=0, daysHoliday=0, weekoffsWorked=0;
 
   const hasCalendarAtt = sAtt && Object.keys(sAtt).length > 0;
   const hasImportedDays = emp.importMonth === ym || (!hasCalendarAtt && (
@@ -36,23 +36,30 @@ export function calcSalary(emp, sAtt={}, ym, weeklyOff, holidays, upTo=todayStr(
   ));
 
   if (hasImportedDays) {
-    daysPresent = Number(emp.daysPresent || 0);
+    const rawPresent = Number(emp.daysPresent || 0);
     daysAbsent = Number(emp.daysAbsent || 0);
+    daysPresent = Math.min(stdWorkdays, rawPresent);
+    weekoffsWorked = Math.max(0, rawPresent - stdWorkdays);
   } else {
     range.forEach(d=>{
       const future = d>upTo;
+      if (future) return;
       const off    = isWeeklyOff(d,weeklyOff);
       const hol    = isHoliday(d,holidays);
       const st     = sAtt[d];
-      if (off || future) return;
+      if (off) {
+        if (st==='P') weekoffsWorked += 1;
+        else if (st==='HD') weekoffsWorked += 0.5;
+        return;
+      }
       if (hol) {
-        if (st !== 'A') daysHoliday++;
+        if (st !== 'A' && st !== 'UL') daysHoliday++;
         else daysAbsent++;
         return;
       }
       if(st==='P')  daysPresent++;
       else if(st==='PL') daysPL++;
-      else if(st==='UL') daysUL++;
+      else if(st==='UL') { daysUL++; daysAbsent++; }
       else if(st==='A')  daysAbsent++;
     });
   }
@@ -62,9 +69,11 @@ export function calcSalary(emp, sAtt={}, ym, weeklyOff, holidays, upTo=todayStr(
 
   let paidWeekoffs = 0;
   if (workDays >= 16) {
+    paidWeekoffs = stdWeekoffs;
+  } else if (workDays > 0) {
     paidWeekoffs = Math.min(stdWeekoffs, Math.floor(workDays / 5));
   }
-  const paidDays = Math.min(divisor - daysAbsent, workDays + paidWeekoffs);
+  const paidDays = workDays + paidWeekoffs + weekoffsWorked;
 
   const dailyRate      = divisor > 0 ? emp.salary / divisor : 0;
   const tillDateSalary = Math.round(paidDays * dailyRate);
@@ -74,7 +83,7 @@ export function calcSalary(emp, sAtt={}, ym, weeklyOff, holidays, upTo=todayStr(
   const commEarned     = Number(emp._commEarned||0);   // injected per-render from commission data
   const netPayable     = Math.max(0, tillDateSalary - fixedCut - advanceCut - loanCut + commEarned);
 
-  return { divisor, allWorkDays: stdWorkdays, stdWeekoffs, workDays, paidWeekoffs, dailyRate: Math.round(dailyRate), daysPresent, daysPL, daysUL, daysAbsent, paidDays, tillDateSalary, fixedCut, advanceCut, loanCut, commEarned, netPayable };
+  return { divisor, allWorkDays: stdWorkdays, stdWeekoffs, workDays, paidWeekoffs, weekoffsWorked, dailyRate: Math.round(dailyRate), daysPresent, daysPL, daysUL, daysAbsent, paidDays, tillDateSalary, fixedCut, advanceCut, loanCut, commEarned, netPayable };
 }
 
 // ── Storage ───────────────────────────────────────────────────────────────────

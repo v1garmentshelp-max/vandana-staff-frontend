@@ -3,8 +3,8 @@ export const BRANCHES = ['ALL BRANCHES','VANDANA SHOPPING MALL','VANDANA GARMENT
 export const DESIGNATIONS = ['ADMIN','AGENCY','CASHIER','HELPER','HOUSE KEEPING','MANAGER','SALES GIRL','SALES MAN','SUPERVISOR','TAILOR'];
 export const WEEK_DAYS = ['Sunday','Monday','Tuesday','Wednesday','Thursday','Friday','Saturday'];
 export const WEEK_DAYS_SHORT = ['Sun','Mon','Tue','Wed','Thu','Fri','Sat'];
-export const ATT_STATUSES = ['P','PL','UL','A'];
-export const ATT_LABELS = {P:'Present',PL:'Paid Leave',UL:'Unpaid Leave',A:'Absent'};
+export const ATT_STATUSES = ['P','PL','UL','A','HD'];
+export const ATT_LABELS = {P:'Present',PL:'Paid Leave',UL:'Unpaid Leave',A:'Absent',HD:'Half Day'};
 export const DEFAULT_HOLIDAYS = [
   '2025-01-26','2025-03-14','2025-04-14','2025-04-18','2025-08-15','2025-10-02','2025-10-24','2025-11-05','2025-12-25',
   '2026-01-26','2026-03-03','2026-04-14','2026-08-15','2026-10-02',

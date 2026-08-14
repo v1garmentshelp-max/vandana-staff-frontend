@@ -199,8 +199,11 @@ export default function SheetPage({
                   <td style={{fontWeight:500,fontSize:13,position:'sticky',left:0,background:'var(--surface)',zIndex:1,padding:'7px 12px'}}>{s.name}</td>
                   {days.map(d=>{
                     const off=isWeeklyOff(d,weeklyOff),hol=isHoliday(d,holidays),fut=d>todaySt;
-                    if(off||hol) return <td key={d} style={{textAlign:'center',padding:'7px 2px',background:off?'var(--p100)':'var(--g50)'}}><span style={{fontSize:11,color:off?'var(--p600)':'var(--g700)'}}>{off?'☀':'✦'}</span></td>;
-                    return <AttCell key={d} value={monthAt[s.id]?.[d]} disabled={fut} isToday={d===todaySt} onChange={v=>editAttCell(s.id,d,v)}/>;
+                    const val = monthAt[s.id]?.[d];
+                    if((off||hol) && !val) {
+                      return <td key={d} onClick={() => !fut && editAttCell(s.id, d, 'P')} style={{textAlign:'center',padding:'7px 2px',background:off?'var(--p100)':'var(--g50)',cursor:fut?'default':'cell'}}><span style={{fontSize:11,color:off?'var(--p600)':'var(--g700)'}}>{off?'Off':'Hol'}</span></td>;
+                    }
+                    return <AttCell key={d} value={val} disabled={fut} isToday={d===todaySt} onChange={v=>editAttCell(s.id,d,v)}/>;
                   })}
                 </tr>
               ))}
