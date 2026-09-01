@@ -70,7 +70,12 @@ export default function SalaryBreakupModal({ staff, sal, curMonth, onClose }) {
             <p style={{ fontSize: 11, color: 'var(--t3)', margin: 0, lineHeight: 1.45 }}>
               <span>
                 Standard Month Threshold = {sal.allWorkDays} Workdays minimum ({sal.allWorkDays === 26 ? '31-day month' : sal.allWorkDays === 25 ? '30-day month' : `${sal.allWorkDays} workdays`}). 
-                {sal.workDays >= sal.allWorkDays ? ' Threshold met: Full monthly salary credited + per-day rate for extra days worked.' : ' Below threshold: Salary cut by missed workdays + 1 weekoff penalty.'}
+                {sal.workDays >= sal.allWorkDays 
+                  ? ' Threshold met: Full monthly salary credited + per-day rate for extra days worked.' 
+                  : sal.workDays >= 15
+                    ? ' Below threshold (>= 15 days): Salary cut by missed workdays + 1 weekoff penalty cut.'
+                    : ' Below 15 days worked: Weekoffs salary deducted (0 paid weekoffs). Salary calculated directly as per-day rate × days worked.'
+                }
                 <br />
                 <strong>Paid Days Formula:</strong> Workdays ({sal.workDays}) + Paid Weekoffs ({sal.paidWeekoffs}) + Extra Weekoffs Worked ({sal.weekoffsWorked}) = <strong>{sal.paidDays} Paid Days</strong>.
               </span>

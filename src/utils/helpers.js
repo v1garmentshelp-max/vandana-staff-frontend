@@ -72,12 +72,12 @@ export function calcSalary(emp, sAtt={}, ym, weeklyOff, holidays, upTo=todayStr(
   let paidWeekoffs = 0;
   if (workDays >= stdWorkdays) {
     paidWeekoffs = stdPaidWeekoffs;
-  } else if (workDays > 0) {
-    // Below minimum workdays threshold -> 1 weekoff penalty cut
+  } else if (workDays >= 15) {
+    // Below standard workdays threshold but >= 15 days -> 1 weekoff penalty cut
     paidWeekoffs = Math.max(0, stdPaidWeekoffs - 1);
-    if (workDays < 5) {
-      paidWeekoffs = Math.min(paidWeekoffs, Math.floor(workDays / 5));
-    }
+  } else {
+    // Below 15 days worked -> weekoffs salary is deducted (0 weekoffs paid)
+    paidWeekoffs = 0;
   }
 
   const extraDays = Math.max(0, workDays - stdWorkdays) + weekoffsWorked;
