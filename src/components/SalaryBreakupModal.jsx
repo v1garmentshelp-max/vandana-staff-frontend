@@ -35,7 +35,7 @@ export default function SalaryBreakupModal({ staff, sal, curMonth, onClose }) {
           </p>
           <div style={{ display: 'flex', justifyContent: 'space-between' }}>
             <span>Plan Applied:</span>
-            <span style={{ fontWeight: 600 }}>26 Workdays & 4 Weekoffs Plan</span>
+            <span style={{ fontWeight: 600 }}>{sal.allWorkDays} Workdays & {sal.stdWeekoffs} Weekoffs Plan</span>
           </div>
           <div style={{ display: 'flex', justifyContent: 'space-between' }}>
             <span>Daily Rate Calculation:</span>
@@ -69,7 +69,7 @@ export default function SalaryBreakupModal({ staff, sal, curMonth, onClose }) {
             <p style={{ fontWeight: 600, color: 'var(--g800)', margin: '0 0 4px 0', fontSize: 11 }}>Rules Applied:</p>
             <p style={{ fontSize: 11, color: 'var(--t3)', margin: 0, lineHeight: 1.45 }}>
               <span>
-                Standard Month = 26 Workdays + 4 Weekoffs.
+                Standard Month = {sal.allWorkDays} Workdays + {sal.stdWeekoffs} Weekoffs. Employee must work &gt; 16 days for full weekoff salary.
                 <br />
                 <strong>Paid Days Formula:</strong> Workdays ({sal.workDays}) + Paid Weekoffs ({sal.paidWeekoffs}) + Extra Weekoffs Worked ({sal.weekoffsWorked}) = <strong>{sal.paidDays} Paid Days</strong>.
               </span>

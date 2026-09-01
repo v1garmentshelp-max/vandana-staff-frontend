@@ -77,14 +77,15 @@ export default function CommissionPage({ staff, curMonth, setCurMonth, getCommis
     const reader = new FileReader();
     reader.onload = evt => {
       try {
-        const wb = XLSX.read(evt.target.result, { type: 'binary' });
+        const data = new Uint8Array(evt.target.result);
+        const wb = XLSX.read(data, { type: 'array' });
         const ws = wb.Sheets[wb.SheetNames[0]];
         const rows = XLSX.utils.sheet_to_json(ws, { defval: '' });
 
         const FIELD_MAP = {
-          'id': ['id', 'empid', 'employeeid'],
-          'name': ['name', 'fullname', 'staffname', 'employeename'],
-          'designation': ['designation', 'role', 'position'],
+          'id': ['id', 'empid', 'employeeid', 'staffid', 'idno'],
+          'name': ['name', 'fullname', 'staffname', 'employeename', 'employee'],
+          'designation': ['designation', 'role', 'position', 'desg'],
           'sale': ['sale', 'sales', 'actualsales', 'saleamount'],
           'commission': ['commission', 'commissionrate', 'rate', 'commpct', 'commpercent', 'comm']
         };
@@ -99,7 +100,7 @@ export default function CommissionPage({ staff, curMonth, setCurMonth, getCommis
           Object.entries(FIELD_MAP).forEach(([ourKey, aliases]) => {
             for (const alias of aliases) {
               const v = r[alias];
-              if (v !== undefined && v !== '') {
+              if (v !== undefined && v !== null && v !== '') {
                 mapped[ourKey] = String(v).trim();
                 return;
               }
@@ -148,7 +149,7 @@ export default function CommissionPage({ staff, curMonth, setCurMonth, getCommis
         showToast('Import failed: ' + err.message, 'error');
       }
     };
-    reader.readAsBinaryString(file);
+    reader.readAsArrayBuffer(file);
     e.target.value = '';
   }
 

@@ -63,29 +63,30 @@ export default function App() {
     const reader = new FileReader();
     reader.onload = evt => {
       try {
-        const wb   = XLSX.read(evt.target.result, { type:'binary' });
+        const data = new Uint8Array(evt.target.result);
+        const wb   = XLSX.read(data, { type: 'array' });
         const ws   = wb.Sheets[wb.SheetNames[0]];
         const rows = XLSX.utils.sheet_to_json(ws, { defval:'' });
         const MERGE = ['advance','extraAdvance'];
         const NUM   = ['salary','fixedCutting','advance','extraAdvance','monthlyRecovery','totalOutstanding','totalSavings','daysPresent','daysAbsent'];
         const FIELD_MAP = {
-          'id':['id','empid','employeeid'],
-          'name':['name','fullname','staffname','employeename'],
-          'designation':['designation','role','position'],
-          'branch':['branch','branchname'],
-          'aadhar':['aadhar','aadharnumber','aadharno'],
-          'phone':['phone','phoneno','mobile','mobileno'],
-          'altPhone':['alternatemobileno','altmobile','altphone','phone2'],
+          'id':['id','empid','employeeid','staffid','idno'],
+          'name':['name','fullname','staffname','employeename','employee'],
+          'designation':['designation','role','position','desg'],
+          'branch':['branch','branchname','location'],
+          'aadhar':['aadhar','aadharnumber','aadharno','aadhaar'],
+          'phone':['phone','phoneno','mobile','mobileno','contact'],
+          'altPhone':['alternatemobileno','altmobile','altphone','phone2','alternatephone'],
           'dob':['dob','dateofbirth','birthdate'],
-          'salary':['salary','monthlysalary','ctc'],
-          'fixedCutting':['fixedcutting','fixedcut','savings','savingspermonth'],
+          'salary':['salary','monthlysalary','ctc','basesalary','basic'],
+          'fixedCutting':['fixedcutting','fixedcut','savings','savingspermonth','cutting'],
           'advance':['advance','advancetaken','advanceamount'],
           'extraAdvance':['extraadvance','loan','loanamount','extraadvanceamount','loanoutstanding','totalloan'],
           'monthlyRecovery':['monthlyrecovery','monthyrecovery','loanrecovery','emiamount','loanemi','emi','monthlyrecoveryamount','monthyrecoveryamount','loanrecoveryamount','loanrecoveryemi','monthyrecoveryemi'],
           'totalOutstanding':['totaloutstanding','remainingloan','loanbalance','outstanding','totaloutstandingamount','outstandingamount'],
           'totalSavings':['totalsavings','totalsaving','accumulatedsavings','totalsavingsamount'],
-          'daysPresent':['dayspresent','presentdays','noofdayspresent','present','dayspresentcount'],
-          'daysAbsent':['daysabsent','absentdays','noofdaysabsent','absent','daysabsentcount'],
+          'daysPresent':['dayspresent','presentdays','noofdayspresent','present','dayspresentcount','workingdays','workdays'],
+          'daysAbsent':['daysabsent','absentdays','noofdaysabsent','absent','daysabsentcount','absents'],
         };
         const changes = [];
         const excelIds = new Set();
@@ -98,7 +99,7 @@ export default function App() {
           Object.entries(FIELD_MAP).forEach(([ourKey, aliases]) => {
             for (const alias of aliases) {
               const v = r[alias];
-              if (v !== undefined) {
+              if (v !== undefined && v !== null && v !== '') {
                 let strVal = String(v).trim();
                 if (ourKey === 'dob') {
                   if (!isNaN(Number(v)) && Number(v) > 10000) {
@@ -125,7 +126,7 @@ export default function App() {
           NUM.forEach(k => {
             if (mapped[k] !== undefined) {
               const cleaned = String(mapped[k]).replace(/[^\d.-]/g, '');
-              mapped[k] = Number(cleaned) || 0;
+              mapped[k] = isNaN(Number(cleaned)) ? 0 : Number(cleaned);
             }
           });
           if (mapped['advance'] === undefined) {
@@ -192,7 +193,7 @@ export default function App() {
         setImportChanges(changes);
       } catch(err) { showToast('Import failed: '+err.message,'error'); }
     };
-    reader.readAsBinaryString(file);
+    reader.readAsArrayBuffer(file);
     e.target.value = '';
   }
 

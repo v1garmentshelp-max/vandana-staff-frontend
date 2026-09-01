@@ -21,11 +21,9 @@ export const DAY_ABBR = ['Su','Mo','Tu','We','Th','Fr','Sa'];
 export function calcSalary(emp, sAtt={}, ym, weeklyOff, holidays, upTo=todayStr()) {
   const range       = dateRange(ym);
   const calendarDays = range.length;
+  const stdWeekoffs = calendarDays === 31 ? 5 : 4;
   const divisor     = (calendarDays === 31 || calendarDays === 30) ? 30 : calendarDays;
-  
-  // Determine standard weekoffs and workdays based on actual calendar days
-  const stdWeekoffs = 4;
-  const stdWorkdays = divisor - stdWeekoffs;
+  const stdWorkdays = calendarDays >= 30 ? 26 : (divisor - stdWeekoffs);
   
   let daysPresent=0, daysPL=0, daysUL=0, daysAbsent=0, daysHoliday=0, weekoffsWorked=0;
 
@@ -68,7 +66,7 @@ export function calcSalary(emp, sAtt={}, ym, weeklyOff, holidays, upTo=todayStr(
   const workDays = hasImportedDays ? daysPresent : (daysPresent + daysPL + daysHoliday);
 
   let paidWeekoffs = 0;
-  if (workDays >= 16) {
+  if (workDays > 16) {
     paidWeekoffs = stdWeekoffs;
   } else if (workDays > 0) {
     paidWeekoffs = Math.min(stdWeekoffs, Math.floor(workDays / 5));
