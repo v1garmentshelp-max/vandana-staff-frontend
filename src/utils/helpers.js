@@ -26,6 +26,7 @@ export function calcSalary(emp, sAtt={}, ym, weeklyOff, holidays, upTo=todayStr(
   const stdWorkdays = calendarDays >= 30 ? 26 : (divisor - stdWeekoffs);
   
   let daysPresent=0, daysPL=0, daysUL=0, daysAbsent=0, daysHoliday=0, weekoffsWorked=0;
+  let totalPresentDays = 0;
 
   const hasCalendarAtt = sAtt && Object.keys(sAtt).length > 0;
   const hasImportedDays = emp.importMonth === ym || (!hasCalendarAtt && (
@@ -36,8 +37,9 @@ export function calcSalary(emp, sAtt={}, ym, weeklyOff, holidays, upTo=todayStr(
   if (hasImportedDays) {
     const rawPresent = Number(emp.daysPresent || 0);
     daysAbsent = Number(emp.daysAbsent || 0);
+    totalPresentDays = rawPresent;
     daysPresent = Math.min(stdWorkdays, rawPresent);
-    weekoffsWorked = Math.max(0, rawPresent - stdWorkdays);
+    weekoffsWorked = Math.max(0, rawPresent - calendarDays);
   } else {
     range.forEach(d=>{
       const future = d>upTo;
@@ -60,6 +62,7 @@ export function calcSalary(emp, sAtt={}, ym, weeklyOff, holidays, upTo=todayStr(
       else if(st==='UL') { daysUL++; daysAbsent++; }
       else if(st==='A')  daysAbsent++;
     });
+    totalPresentDays = daysPresent + weekoffsWorked;
   }
 
   // Work days to compare against standard workdays (present + paid leaves + holidays)
@@ -81,7 +84,7 @@ export function calcSalary(emp, sAtt={}, ym, weeklyOff, holidays, upTo=todayStr(
   const commEarned     = Number(emp._commEarned||0);   // injected per-render from commission data
   const netPayable     = Math.max(0, tillDateSalary - fixedCut - advanceCut - loanCut + commEarned);
 
-  return { divisor, allWorkDays: stdWorkdays, stdWeekoffs, workDays, paidWeekoffs, weekoffsWorked, dailyRate: Math.round(dailyRate), daysPresent, daysPL, daysUL, daysAbsent, paidDays, tillDateSalary, fixedCut, advanceCut, loanCut, commEarned, netPayable };
+  return { divisor, allWorkDays: stdWorkdays, stdWeekoffs, workDays, paidWeekoffs, weekoffsWorked, dailyRate: Math.round(dailyRate), daysPresent: totalPresentDays, workDaysPresent: daysPresent, daysPL, daysUL, daysAbsent, paidDays, tillDateSalary, fixedCut, advanceCut, loanCut, commEarned, netPayable };
 }
 
 // ── Storage ───────────────────────────────────────────────────────────────────
