@@ -22,8 +22,8 @@ export function calcSalary(emp, sAtt={}, ym, weeklyOff, holidays, upTo=todayStr(
   const range       = dateRange(ym);
   const calendarDays = range.length;
   const divisor     = (calendarDays === 31 || calendarDays === 30) ? 30 : calendarDays;
-  const stdWorkdays = calendarDays === 31 ? 26 : (calendarDays === 30 ? 25 : (divisor - 4));
-  const stdPaidWeekoffs = divisor - stdWorkdays;
+  const stdWorkdays = 25;
+  const stdPaidWeekoffs = 5;
 
   let daysPresent=0, daysPL=0, daysUL=0, daysAbsent=0, daysHoliday=0, weekoffsWorked=0;
   let totalPresentDays = 0;
@@ -70,13 +70,13 @@ export function calcSalary(emp, sAtt={}, ym, weeklyOff, holidays, upTo=todayStr(
   const workDays = hasImportedDays ? daysPresent : (daysPresent + daysPL + daysHoliday);
 
   let paidWeekoffs = 0;
-  if (workDays >= stdWorkdays) {
-    paidWeekoffs = stdPaidWeekoffs;
-  } else if (workDays >= 15) {
-    // Below standard workdays threshold but >= 15 days -> 1 weekoff penalty cut
-    paidWeekoffs = Math.max(0, stdPaidWeekoffs - 1);
+  if (workDays >= 25) {
+    paidWeekoffs = 5;
+  } else if (workDays >= 20) {
+    paidWeekoffs = 4;
+  } else if (workDays >= 16) {
+    paidWeekoffs = 3;
   } else {
-    // Below 15 days worked -> weekoffs salary is deducted (0 weekoffs paid)
     paidWeekoffs = 0;
   }
 
@@ -87,13 +87,16 @@ export function calcSalary(emp, sAtt={}, ym, weeklyOff, holidays, upTo=todayStr(
   const roundedDailyRate = Math.round(dailyRate);
 
   let tillDateSalary = 0;
-  if (workDays >= stdWorkdays) {
+  if (workDays >= 25) {
     tillDateSalary = Math.round(emp.salary + extraDays * roundedDailyRate);
   } else {
     tillDateSalary = Math.round(paidDays * dailyRate);
   }
 
-  const fixedCut       = emp._savingsConfirmed ? Number(emp.fixedCutting||0) : 0;
+  const rawFixedCut    = emp.fixedCutting !== undefined && emp.fixedCutting !== null
+    ? Number(emp.fixedCutting)
+    : (emp.fixed_cutting !== undefined && emp.fixed_cutting !== null ? Number(emp.fixed_cutting) : 500);
+  const fixedCut       = emp._savingsConfirmed ? rawFixedCut : 0;
   const advanceCut     = Number(emp.advance||0);
   const loanCut        = Number(emp.monthlyRecovery||0);
   const commEarned     = Number(emp._commEarned||0);   // injected per-render from commission data
