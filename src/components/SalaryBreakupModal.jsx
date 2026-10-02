@@ -66,18 +66,27 @@ export default function SalaryBreakupModal({ staff, sal, curMonth, onClose }) {
 
           {/* Rules Explanation */}
           <div style={{ background: '#fff', padding: 8, borderRadius: 6, border: '1px dashed var(--border)' }}>
-            <p style={{ fontWeight: 600, color: 'var(--g800)', margin: '0 0 4px 0', fontSize: 11 }}>Rules Applied:</p>
+            <p style={{ fontWeight: 600, color: 'var(--g800)', margin: '0 0 4px 0', fontSize: 11 }}>Rules Applied ({sal.calendarDays === 31 ? '31-Day Month' : '30-Day Month'}):</p>
             <p style={{ fontSize: 11, color: 'var(--t3)', margin: 0, lineHeight: 1.45 }}>
               <span>
                 Workdays Worked: <strong>{sal.workDays} days</strong>. 
-                {sal.workDays >= 25 
-                  ? ' 25+ workdays: Full monthly salary credited with 5 weekly offs included.' 
-                  : sal.workDays >= 20
-                    ? ' 20–24 workdays: Entitled to 4 weekly offs.'
-                    : sal.workDays >= 16
-                      ? ' 16–19 workdays: Entitled to 3 weekly offs.'
-                      : ' Below 15 workdays: No weekly offs provided. Salary calculated per-day for days worked only.'
-                }
+                {sal.calendarDays === 31 ? (
+                  sal.workDays >= 26 
+                    ? ' 26+ workdays: Full monthly salary credited with 5 weekly offs included.' 
+                    : sal.workDays >= 20
+                      ? ' 20–25 workdays: Entitled to 4 weekly offs.'
+                      : sal.workDays >= 16
+                        ? ' 16–19 workdays: Entitled to 3 weekly offs.'
+                        : ' 15 and below workdays: No weekly offs provided. Salary calculated per-day for days worked only.'
+                ) : (
+                  sal.workDays >= 25 
+                    ? ' 25+ workdays: Full monthly salary credited with 5 weekly offs included.' 
+                    : sal.workDays >= 20
+                      ? ' 20–24 workdays: Entitled to 4 weekly offs.'
+                      : sal.workDays >= 16
+                        ? ' 16–19 workdays: Entitled to 3 weekly offs.'
+                        : ' 15 and below workdays: No weekly offs provided. Salary calculated per-day for days worked only.'
+                )}
                 <br />
                 <strong>Paid Days Formula:</strong> Workdays ({sal.workDays}) + Paid Weekoffs ({sal.paidWeekoffs}) + Extra Weekoffs Worked ({sal.weekoffsWorked}) = <strong>{sal.paidDays} Paid Days</strong>.
               </span>

@@ -22,7 +22,7 @@ export function calcSalary(emp, sAtt={}, ym, weeklyOff, holidays, upTo=todayStr(
   const range       = dateRange(ym);
   const calendarDays = range.length;
   const divisor     = (calendarDays === 31 || calendarDays === 30) ? 30 : calendarDays;
-  const stdWorkdays = 25;
+  const stdWorkdays = calendarDays === 31 ? 26 : 25;
   const stdPaidWeekoffs = 5;
 
   let daysPresent=0, daysPL=0, daysUL=0, daysAbsent=0, daysHoliday=0, weekoffsWorked=0;
@@ -70,14 +70,26 @@ export function calcSalary(emp, sAtt={}, ym, weeklyOff, holidays, upTo=todayStr(
   const workDays = hasImportedDays ? daysPresent : (daysPresent + daysPL + daysHoliday);
 
   let paidWeekoffs = 0;
-  if (workDays >= 25) {
-    paidWeekoffs = 5;
-  } else if (workDays >= 20) {
-    paidWeekoffs = 4;
-  } else if (workDays >= 16) {
-    paidWeekoffs = 3;
+  if (calendarDays === 31) {
+    if (workDays >= 26) {
+      paidWeekoffs = 5;
+    } else if (workDays >= 20) {
+      paidWeekoffs = 4;
+    } else if (workDays >= 16) {
+      paidWeekoffs = 3;
+    } else {
+      paidWeekoffs = 0;
+    }
   } else {
-    paidWeekoffs = 0;
+    if (workDays >= 25) {
+      paidWeekoffs = 5;
+    } else if (workDays >= 20) {
+      paidWeekoffs = 4;
+    } else if (workDays >= 16) {
+      paidWeekoffs = 3;
+    } else {
+      paidWeekoffs = 0;
+    }
   }
 
   const extraDays = Math.max(0, workDays - stdWorkdays) + weekoffsWorked;
@@ -87,7 +99,7 @@ export function calcSalary(emp, sAtt={}, ym, weeklyOff, holidays, upTo=todayStr(
   const roundedDailyRate = Math.round(dailyRate);
 
   let tillDateSalary = 0;
-  if (workDays >= 25) {
+  if (workDays >= stdWorkdays) {
     tillDateSalary = Math.round(emp.salary + extraDays * roundedDailyRate);
   } else {
     tillDateSalary = Math.round(paidDays * dailyRate);
@@ -102,7 +114,7 @@ export function calcSalary(emp, sAtt={}, ym, weeklyOff, holidays, upTo=todayStr(
   const commEarned     = Number(emp._commEarned||0);   // injected per-render from commission data
   const netPayable     = Math.max(0, tillDateSalary - fixedCut - advanceCut - loanCut + commEarned);
 
-  return { divisor, allWorkDays: stdWorkdays, stdWeekoffs: stdPaidWeekoffs, workDays, paidWeekoffs, weekoffsWorked, dailyRate: roundedDailyRate, daysPresent: totalPresentDays, workDaysPresent: daysPresent, daysPL, daysUL, daysAbsent, paidDays, tillDateSalary, fixedCut, advanceCut, loanCut, commEarned, netPayable };
+  return { divisor, calendarDays, allWorkDays: stdWorkdays, stdWeekoffs: stdPaidWeekoffs, workDays, paidWeekoffs, weekoffsWorked, dailyRate: roundedDailyRate, daysPresent: totalPresentDays, workDaysPresent: daysPresent, daysPL, daysUL, daysAbsent, paidDays, tillDateSalary, fixedCut, advanceCut, loanCut, commEarned, netPayable };
 }
 
 // ── Storage ───────────────────────────────────────────────────────────────────
