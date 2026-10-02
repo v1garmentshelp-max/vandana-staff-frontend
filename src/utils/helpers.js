@@ -108,7 +108,7 @@ export function calcSalary(emp, sAtt={}, ym, weeklyOff, holidays, upTo=todayStr(
   const rawFixedCut    = emp.fixedCutting !== undefined && emp.fixedCutting !== null
     ? Number(emp.fixedCutting)
     : (emp.fixed_cutting !== undefined && emp.fixed_cutting !== null ? Number(emp.fixed_cutting) : 500);
-  const fixedCut       = emp._savingsConfirmed ? rawFixedCut : 0;
+  const fixedCut       = rawFixedCut;
   const advanceCut     = Number(emp.advance||0);
   const loanCut        = Number(emp.monthlyRecovery||0);
   const commEarned     = Number(emp._commEarned||0);   // injected per-render from commission data

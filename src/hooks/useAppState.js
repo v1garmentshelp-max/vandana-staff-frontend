@@ -204,11 +204,18 @@ export function useAppState(showToast) {
   }
 
   // ── Savings ─────────────────────────────────────────────────────────────────
+  function getEmpFixedCut(emp) {
+    if (!emp) return 500;
+    if (emp.fixedCutting !== undefined && emp.fixedCutting !== null) return Number(emp.fixedCutting);
+    if (emp.fixed_cutting !== undefined && emp.fixed_cutting !== null) return Number(emp.fixed_cutting);
+    return 500;
+  }
+
   function getSavings(id) { return allSavings[id] || { confirmed: [], total: 0 }; }
 
   async function confirmSavings(id, month) {
     const emp = staff.find(x => x.id === id); if (!emp) return;
-    const amount = Number(emp.fixedCutting || 0);
+    const amount = getEmpFixedCut(emp);
     const s = snap(); pushH(s);
     setAllSavings(prev => {
       const r = prev[id] || { confirmed: [], total: 0 };
@@ -240,7 +247,7 @@ export function useAppState(showToast) {
       const next = { ...prev };
       toConfirm.forEach(emp => {
         const r = next[emp.id] || { confirmed: [], total: 0 };
-        next[emp.id] = { confirmed: [...r.confirmed, month], total: r.total + Number(emp.fixedCutting || 0) };
+        next[emp.id] = { confirmed: [...r.confirmed, month], total: r.total + getEmpFixedCut(emp) };
       });
       return next;
     });
@@ -248,17 +255,17 @@ export function useAppState(showToast) {
     setStaff(prev => prev.map(emp => {
       const needsConf = toConfirm.some(x => x.id === emp.id);
       if (needsConf) {
-        return { ...emp, totalSavings: (emp.totalSavings || 0) + Number(emp.fixedCutting || 0) };
+        return { ...emp, totalSavings: (emp.totalSavings || 0) + getEmpFixedCut(emp) };
       }
       return emp;
     }));
 
     try {
       await Promise.all(toConfirm.map(emp =>
-        api.confirmSavings(emp.id, month, Number(emp.fixedCutting || 0))
+        api.confirmSavings(emp.id, month, getEmpFixedCut(emp))
       ));
       await Promise.all(toConfirm.map(emp =>
-        addAuditEntry('CONFIRM_SAVINGS', emp.id, 'savings', null, Number(emp.fixedCutting || 0))
+        addAuditEntry('CONFIRM_SAVINGS', emp.id, 'savings', null, getEmpFixedCut(emp))
       ));
     } catch(e) {
       setAllSavings(s.allSavings);
@@ -281,7 +288,7 @@ export function useAppState(showToast) {
       const next = { ...prev };
       toUnconfirm.forEach(emp => {
         const r = next[emp.id] || { confirmed: [], total: 0 };
-        next[emp.id] = { confirmed: r.confirmed.filter(m => m !== month), total: Math.max(0, r.total - Number(emp.fixedCutting || 0)) };
+        next[emp.id] = { confirmed: r.confirmed.filter(m => m !== month), total: Math.max(0, r.total - getEmpFixedCut(emp)) };
       });
       return next;
     });
@@ -289,7 +296,7 @@ export function useAppState(showToast) {
     setStaff(prev => prev.map(emp => {
       const needsUnconf = toUnconfirm.some(x => x.id === emp.id);
       if (needsUnconf) {
-        return { ...emp, totalSavings: Math.max(0, (emp.totalSavings || 0) - Number(emp.fixedCutting || 0)) };
+        return { ...emp, totalSavings: Math.max(0, (emp.totalSavings || 0) - getEmpFixedCut(emp)) };
       }
       return emp;
     }));
@@ -309,7 +316,7 @@ export function useAppState(showToast) {
 
   async function unconfirmSavings(id, month) {
     const emp = staff.find(x => x.id === id); if (!emp) return;
-    const amount = Number(emp.fixedCutting || 0);
+    const amount = getEmpFixedCut(emp);
     const s = snap(); pushH(s);
     setAllSavings(prev => {
       const r = prev[id] || { confirmed: [], total: 0 };

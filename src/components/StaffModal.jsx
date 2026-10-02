@@ -4,18 +4,22 @@ import { genId } from '../utils/helpers.js';
 import { BRANCHES, DESIGNATIONS } from '../utils/constants.js';
 
 export default function StaffModal({ existing, onSave, onClose }) {
-  const [form,setForm]=useState(existing||{id:'',name:'',designation:'',branch:'',aadhar:'',phone:'',altPhone:'',dob:'',salary:'',fixedCutting:'500',advance:'0',extraAdvance:'0',monthlyRecovery:'0',totalOutstanding:'0',totalSavings:'0',daysPresent:'0',daysAbsent:'0'});
+  const [form,setForm]=useState(existing ? {
+    ...existing,
+    fixedCutting: existing.fixedCutting ?? existing.fixed_cutting ?? 500,
+  } : {id:'',name:'',designation:'',branch:'',aadhar:'',phone:'',altPhone:'',dob:'',salary:'',fixedCutting:'500',advance:'0',extraAdvance:'0',monthlyRecovery:'0',totalOutstanding:'0',totalSavings:'0',daysPresent:'0',daysAbsent:'0'});
   const [errors,setErrors]=useState({});
   const f=(k,v)=>{ setForm(p=>({...p,[k]:v})); setErrors(p=>({...p,[k]:undefined})); };
   function validate(){ const e={}; if(!form.name.trim()) e.name='Required'; if(!form.salary||Number(form.salary)<0) e.salary='Required'; return e; }
   function save(){
     const e=validate(); if(Object.keys(e).length){setErrors(e);return;}
-    onSave({...form,id:form.id.trim()||genId('VM'),salary:Number(form.salary),fixedCutting:Number(form.fixedCutting !== '' && form.fixedCutting !== undefined ? form.fixedCutting : 500),advance:Number(form.advance||0),extraAdvance:Number(form.extraAdvance||0),monthlyRecovery:Number(form.monthlyRecovery||0),totalOutstanding:Number(form.totalOutstanding||0),totalSavings:Number(form.totalSavings||0),daysPresent:Number(form.daysPresent||0),daysAbsent:Number(form.daysAbsent||0)});
+    const parseNum = (v, defaultVal = 0) => (v !== '' && v !== undefined && v !== null && !isNaN(Number(v))) ? Number(v) : defaultVal;
+    onSave({...form,id:form.id.trim()||genId('VM'),salary:Number(form.salary),fixedCutting:parseNum(form.fixedCutting, existing ? 0 : 500),advance:parseNum(form.advance),extraAdvance:parseNum(form.extraAdvance),monthlyRecovery:parseNum(form.monthlyRecovery),totalOutstanding:parseNum(form.totalOutstanding),totalSavings:parseNum(form.totalSavings),daysPresent:parseNum(form.daysPresent),daysAbsent:parseNum(form.daysAbsent)});
     onClose();
   }
   const err=(k)=>errors[k]&&<p style={{fontSize:11,color:'var(--r600)',marginTop:3}}>{errors[k]}</p>;
-  const ni=(k,opts={})=><input value={form[k]||''} onChange={e=>f(k,e.target.value)} style={{borderColor:errors[k]?'var(--r600)':undefined}} {...opts}/>;
-  const nn=(k,opts={})=><input type="number" min={0} value={form[k]||''} onChange={e=>f(k,e.target.value)} {...opts}/>;
+  const ni=(k,opts={})=><input value={form[k] ?? ''} onChange={e=>f(k,e.target.value)} style={{borderColor:errors[k]?'var(--r600)':undefined}} {...opts}/>;
+  const nn=(k,opts={})=><input type="number" min={0} value={form[k] ?? ''} onChange={e=>f(k,e.target.value)} {...opts}/>;
 
   return (
     <Modal title={existing?'Edit Staff Member':'Add New Staff Member'} onClose={onClose} width={620}>
