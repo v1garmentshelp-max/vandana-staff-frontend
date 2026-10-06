@@ -106,14 +106,37 @@ export default function SheetPage({
       const sal=calcSalary({...s, _commEarned:commEarned, _savingsConfirmed:isConf},sAtt,curMonth,weeklyOff,holidays);
       const loan = getLoan(s.id);
       const loanTotal = loan.total > 0 ? loan.total : Number(s.extraAdvance || 0);
-      const loanRemaining = Math.max(0, Number(s.extraAdvance || 0) - Number(s.monthlyRecovery || 0));
-      return{'ID':s.id,'Name':s.name,'Designation':s.designation,'Branch':s.branch,'Salary':s.salary,'Fixed Cutting':s.fixedCutting,'Advance':s.advance,'Extra Advance':loanTotal,'Monthly Recovery':s.monthlyRecovery,'Outstanding':loanRemaining,'Total Savings':s.totalSavings,'Days Present':sal.daysPresent,'Absent':sal.daysAbsent,'Net Payable':sal.netPayable};
+      const loanRemaining = loan.remaining > 0 ? loan.remaining : Math.max(0, Number(s.extraAdvance || 0) - Number(s.monthlyRecovery || 0));
+      return {
+        'ID': s.id,
+        'Name': s.name,
+        'Designation': s.designation || '',
+        'Branch': s.branch || '',
+        'Aadhar': s.aadhar || '',
+        'Phone': s.phone || '',
+        'Alt Phone': s.altPhone || '',
+        'DOB': s.dob || '',
+        'Salary': s.salary || 0,
+        'Fixed Cutting': s.fixedCutting || 0,
+        'Commission': commEarned,
+        'Advance': s.advance || 0,
+        'Extra Advance': loanTotal,
+        'Monthly Recovery': s.monthlyRecovery || 0,
+        'Outstanding': loanRemaining,
+        'Total Savings': s.totalSavings || 0,
+        'Days Present': sal.daysPresent,
+        'Days Absent': sal.daysAbsent,
+        'Till Date Salary': sal.tillDateSalary,
+        'Net Payable': sal.netPayable
+      };
     });
     XLSX.utils.book_append_sheet(wb,XLSX.utils.json_to_sheet(staffRows),'Staff');
     const attRows=staff.map(s=>{
       const sAtt=(allAtt[curMonth]||{})[s.id]||{};
       const row={'ID':s.id,'Name':s.name};
-      days.forEach(d=>{row[d.slice(8)]=isWeeklyOff(d,weeklyOff)?'Off':isHoliday(d,holidays)?'Hol':sAtt[d]||'';});
+      days.forEach(d=>{
+        row[d.slice(8)] = sAtt[d] || (isWeeklyOff(d,weeklyOff)?'Off':isHoliday(d,holidays)?'Hol':'');
+      });
       return row;
     });
     XLSX.utils.book_append_sheet(wb,XLSX.utils.json_to_sheet(attRows),`Attendance_${curMonth}`);

@@ -178,6 +178,29 @@ export default function CommissionPage({ staff, curMonth, setCurMonth, getCommis
   const totalPool=data.reduce((a,d)=>a+d.pool,0);
   const totalEmp=data.reduce((a,d)=>a+d.empComm,0);
 
+  function downloadCommissionExcel() {
+    const wb = XLSX.utils.book_new();
+    const rows = data.map(d => {
+      const s = staff.find(st => st.id === d.staffId);
+      return {
+        'ID': d.staffId,
+        'Name': s ? s.name : d.staffId,
+        'Designation': s ? s.designation : '',
+        'Branch': s ? s.branch : '',
+        'Target': d.target || 0,
+        'Sale': d.sales || 0,
+        'Rate (%)': d.rate || 0,
+        'Total Pool': d.pool || 0,
+        'Employee Comm': d.empComm || 0,
+        'Helper Pool': d.helpTotal || 0,
+        'Achievement (%)': d.achievement || 0
+      };
+    });
+    XLSX.utils.book_append_sheet(wb, XLSX.utils.json_to_sheet(rows), `Commission_${curMonth}`);
+    XLSX.writeFile(wb, `Commission_${curMonth}.xlsx`);
+    showToast('Commission Excel downloaded!');
+  }
+
   return (
     <div>
       <div style={{display:'grid',gridTemplateColumns:'repeat(auto-fit,minmax(150px,1fr))',gap:10,marginBottom:18}}>
@@ -195,6 +218,9 @@ export default function CommissionPage({ staff, curMonth, setCurMonth, getCommis
         </select>
         <button className="btn btn-sm" onClick={triggerImport} style={{ display:'flex', alignItems:'center', gap:4 }}>
           <i className="ti ti-file-import"/> Import Excel
+        </button>
+        <button className="btn btn-sm btn-primary" onClick={downloadCommissionExcel} style={{ display:'flex', alignItems:'center', gap:4 }}>
+          <i className="ti ti-download"/> Download Excel
         </button>
         <button className="btn btn-sm btn-primary" onClick={()=>setModal('add')}><i className="ti ti-plus"/> Set Target</button>
       </SectionHeader>
